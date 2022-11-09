@@ -1,8 +1,26 @@
 #include <stdlib.h>
 #include <ncurses.h>
+#include <unistd.h>
 #include "server_defs.h"
 
+//temp
+//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void tick(int *flag, int *round_num){
+   // while(1){
+        *flag = 0;
+        usleep(350000);
+        *flag = 1;
+        (*round_num)++;
+    //}
+}
+
 int main() {
+    //temp
+    int round_num = 0;
+    int flag_main = 0;
+
+
     int err;
     char **map = load_map("map", &err);
     initscr();
@@ -64,7 +82,10 @@ int main() {
                 break;
         }
         erase();
+        mvprintw(14, WIDTH + 5, "Round: %d", round_num);
+        tick(&flag_main, &round_num);
         generate_map(WIDTH, HEIGHT, map);
         show_players_info(players);
     }
+    //pthread_mutex_destroy(&mutex);
 }
