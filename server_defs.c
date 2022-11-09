@@ -4,8 +4,11 @@
 #include <time.h>
 #include <ncurses.h>
 
+// TODO pomyslec o tych zmiennych globalnych
 int player_counter = 0;
+int beast_counter = 0;
 
+// TODO zmienic na zwracanie wskaznika i zmienna err dla bestii i gracza
 int spawn_player(PLAYER **ptr, char **map){
     *ptr = malloc(sizeof(PLAYER));
 
@@ -36,6 +39,34 @@ int spawn_player(PLAYER **ptr, char **map){
     player_counter++;
     generate_map(WIDTH, HEIGHT, map);
     return 0;
+}
+
+int spawn_beast(BEAST **beast, char **map, pthread_t* thread){
+    *beast = malloc(sizeof(PLAYER));
+
+    if (!*beast){
+        return -1;
+    }
+
+    int x, y;
+    srand(time(NULL));
+    do{
+        x = rand() % WIDTH;
+        y = rand() % HEIGHT;
+    }
+    while(map[y][x] != ' ');
+    // TODO zmienic na spawnowanie wg id
+    map[y][x] = '*';
+    (*beast)->x_position = x;
+    (*beast)->y_position = y;
+    (*beast)->in_bush = FALSE;
+    (*beast)->in_camp = FALSE;
+
+    beast_counter++;
+    // watek bestii
+    generate_map(WIDTH, HEIGHT, map);
+    return 0;
+
 }
 
 void generate_map(int width, int height, char **map){
