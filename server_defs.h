@@ -9,8 +9,8 @@
 
 struct game_t{
     char **map;
-    struct player_t **players;
-    struct beast_t **beasts;
+    struct player_t *players;
+    struct beast_t *beasts;
     unsigned int number_of_players;
     unsigned int number_of_beasts;
 };
@@ -57,7 +57,7 @@ enum ERROR{
 
 typedef struct player_t PLAYER;
 typedef struct beast_t BEAST;
-typedef struct beast_t GAME;
+typedef struct game_t GAME;
 
 int spawn_player(PLAYER **ptr, char **map);
 int spawn_beast(BEAST **beast, char **map, pthread_t* thread);
