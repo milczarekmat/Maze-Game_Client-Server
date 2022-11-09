@@ -1,5 +1,4 @@
 #include "server_defs.h"
-#include "server_defs.h"
 #include <stdlib.h>
 #include <time.h>
 #include <ncurses.h>
