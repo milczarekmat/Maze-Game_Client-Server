@@ -3,17 +3,13 @@
 #include <time.h>
 #include <ncurses.h>
 
-// TODO pomyslec o tych zmiennych globalnych
-int player_counter = 0;
-int beast_counter = 0;
-
-// TODO zmienic na zwracanie wskaznika i zmienna err dla bestii i gracza
-int spawn_player(PLAYER **ptr, char **map){
-    //*ptr = malloc(sizeof(PLAYER));
-
-    //if (!*ptr){
-        //return -1;
-    //}
+int spawn_player(GAME *game){
+    PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
+    if (!new_players){
+        return -1;
+    }
+    game->players = new_players;
+    PLAYER *player = game->players + game->number_of_players;
 
     int x, y;
     srand(time(NULL));
@@ -21,25 +17,26 @@ int spawn_player(PLAYER **ptr, char **map){
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
     }
-    while(map[y][x] != ' ');
+    while(game->map[y][x] != ' ');
     // TODO zmienic na spawnowanie wg id
-    map[y][x] = '1';
-    (*ptr)->x_spawn = x;
-    (*ptr)->x_position = x;
-    (*ptr)->y_spawn = y;
-    (*ptr)->y_position = y;
-    (*ptr)->id = player_counter + 1;
-    (*ptr)->carried = 0;
-    (*ptr)->brought = 0;
-    (*ptr)->deaths = 0;
-    (*ptr)->in_bush = FALSE;
-    (*ptr)->in_camp = FALSE;
+    game->map[y][x] = '1';
+    (player)->x_spawn = x;
+    (player)->x_position = x;
+    (player)->y_spawn = y;
+    (player)->y_position = y;
+    (player)->id = game->number_of_players + 1;
+    (player)->carried = 0;
+    (player)->brought = 0;
+    (player)->deaths = 0;
+    (player)->in_bush = FALSE;
+    (player)->in_camp = FALSE;
 
-    player_counter++;
-    generate_map(WIDTH, HEIGHT, map);
+    (game->number_of_players)++;
+    generate_map(game);
     return 0;
 }
 
+//TODO zmienic na strukture funkcji wg spawn_player
 int spawn_beast(BEAST **beast, char **map, pthread_t* thread){
     *beast = malloc(sizeof(PLAYER));
 
@@ -61,14 +58,14 @@ int spawn_beast(BEAST **beast, char **map, pthread_t* thread){
     (*beast)->in_bush = FALSE;
     (*beast)->in_camp = FALSE;
 
-    beast_counter++;
+    //game->;
     // watek bestii
-    generate_map(WIDTH, HEIGHT, map);
+    //generate_map(WIDTH, HEIGHT, map);
     return 0;
 
 }
 
-void generate_map(int width, int height, char **map){
+void generate_map(GAME *game){
 
     start_color();
     noecho();
@@ -79,19 +76,19 @@ void generate_map(int width, int height, char **map){
     init_pair(5, COLOR_BLACK, COLOR_YELLOW); // kolor skarbów
     bkgd(COLOR_PAIR(3));
 
-    for (int i=0; i<height; i++){
-        for (int j=0; j<width; j++){
-            if (map[i][j] == (char)(player_counter + '0')){
-                mvaddch(i, j, map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
+    for (int i=0; i<HEIGHT; i++){
+        for (int j=0; j<WIDTH; j++){
+            if (game->map[i][j] == (char)(game->number_of_players + '0')){
+                mvaddch(i, j, game->map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
             }
-            else if (map[i][j] == 'A'){
-                mvaddch(i, j, map[i][j] | COLOR_PAIR(4));
+            else if (game->map[i][j] == 'A'){
+                mvaddch(i, j, game->map[i][j] | COLOR_PAIR(4));
             }
-            else if (map[i][j] == 'c' || map[i][j] == 't' || map[i][j] == 'T'){
-                mvaddch(i, j, map[i][j] | COLOR_PAIR(5));
+            else if (game->map[i][j] == 'c' || game->map[i][j] == 't' || game->map[i][j] == 'T'){
+                mvaddch(i, j, game->map[i][j] | COLOR_PAIR(5));
             }
             else{
-                mvaddch(i, j, map[i][j] | A_ALTCHARSET | COLOR_PAIR(1));
+                mvaddch(i, j, game->map[i][j] | A_ALTCHARSET | COLOR_PAIR(1));
             }
             //TODO koloruj gracza wg id
         }

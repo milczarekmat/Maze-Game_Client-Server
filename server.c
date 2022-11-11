@@ -15,7 +15,7 @@ void tick(int *flag, int *round_num){
     //}
 }
 
-// TODO ZWALNIANIE STRUKTURY GRY - FUNCKJA,inicjalizacja struktury gry, wprowadzenie ticków serwera
+// TODO ALOKACJA STRUKTURY GRY I TABLIC GRACZY ORAZ BESTII - FUNKCJE, wprowadzenie ticków serwera
 int main() {
     //temp
     int round_num = 0;
@@ -48,12 +48,12 @@ int main() {
         main_error(SIZE_OF_CONSOLE);
     }
 
-    PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
+/*    PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
     if (!new_players){
         free_game(&game);
         main_error(ALLOCATION);
     }
-    game->players = new_players;
+    game->players = new_players;*/
     //TODO OGARNAC DALEJ
 /*    PLAYER **players = calloc(2, sizeof(PLAYER *));
 
@@ -63,7 +63,7 @@ int main() {
     }*/
 
     //TODO zmienic wszedzie z &game->players
-    int check_alloc = spawn_player(&game->players, game->map);
+    int check_alloc = spawn_player(game);
 
     if (check_alloc){
         free_game(&game);
@@ -106,7 +106,7 @@ int main() {
         erase();
         mvprintw(14, WIDTH + 5, "Round: %d", round_num);
         tick(&flag_main, &round_num);
-        generate_map(WIDTH, HEIGHT, game->map);
+        generate_map(game);
         show_players_info(&game->players);
     }
     //pthread_mutex_destroy(&mutex);
