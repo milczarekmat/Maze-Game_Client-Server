@@ -232,18 +232,18 @@ void move_player(enum DIRECTION side, PLAYER *player, char **map){
     player->x_position += x;
 }
 
-void show_players_info(PLAYER **players){
+void show_players_info(GAME *game){
     int size = 5;
-    while (*players){
-        mvprintw(0, WIDTH + size, "Player ID: %d", (*players)->id);
-        mvprintw(2 , WIDTH + size, "Player spawn(X/Y): %d/%d", (*players)->x_spawn, (*players)->y_spawn);
-        mvprintw(4 , WIDTH + size, "Current X/Y: %d/%d", (*players)->x_position, (*players)->y_position);
-        mvprintw(6 , WIDTH + size, "Carried: %d", (*players)->carried);
-        mvprintw(8 , WIDTH + size, "Brought: %d", (*players)->brought);
-        mvprintw(10, WIDTH + size, "Deaths: %d", (*players)->deaths);
-        mvprintw(12 , WIDTH + size, "Press q/Q to quit");
+    for (int i = 0; i < game->number_of_players; i++){
+        int j = i + 1;
+        mvprintw(0, WIDTH + (size * j), "Player ID: %d", (game->players + i)->id);
+        mvprintw(2 , WIDTH + (size * j), "Player spawn(X/Y): %d/%d", (game->players + i)->x_spawn, (game->players + i)->y_spawn);
+        mvprintw(4 , WIDTH + (size * j), "Current X/Y: %d/%d", (game->players + i)->x_position, (game->players + i)->y_position);
+        mvprintw(6 , WIDTH + (size * j), "Carried: %d", (game->players + i)->carried);
+        mvprintw(8 , WIDTH + (size * j), "Brought: %d", (game->players + i)->brought);
+        mvprintw(10, WIDTH + (size * j), "Deaths: %d", (game->players + i)->deaths);
+        mvprintw(12 , WIDTH + (size * j), "Press q/Q to quit");
         size += 5;
-        players++;
     }
     move(0, 0);
     refresh();
