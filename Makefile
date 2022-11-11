@@ -1,5 +1,5 @@
 server: server.c server_defs.c
-	gcc -g -lncurses server.c server_defs.c -o server
+	gcc -g -lncurses -pthread server.c server_defs.c server_threads.c -o server
 
 clean:
 	rm *.o server
