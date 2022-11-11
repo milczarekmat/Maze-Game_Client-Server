@@ -9,11 +9,11 @@ int beast_counter = 0;
 
 // TODO zmienic na zwracanie wskaznika i zmienna err dla bestii i gracza
 int spawn_player(PLAYER **ptr, char **map){
-    *ptr = malloc(sizeof(PLAYER));
+    //*ptr = malloc(sizeof(PLAYER));
 
-    if (!*ptr){
-        return -1;
-    }
+    //if (!*ptr){
+        //return -1;
+    //}
 
     int x, y;
     srand(time(NULL));
@@ -140,6 +140,17 @@ char ** load_map(char *filename, int *err){
 
     *err = 0;
     return map;
+}
+
+void free_game(GAME **game){
+    if ((*game)->players){
+        free((*game)->players);
+    }
+    if ((*game)->beasts){
+        free((*game)->beasts);
+    }
+    free_map((*game)->map, HEIGHT);
+    free(*game);
 }
 
 void free_map(char **map, int height){
