@@ -3,6 +3,25 @@
 #include <time.h>
 #include <ncurses.h>
 
+GAME * create_game(){
+    GAME *game = malloc(sizeof(GAME));
+    if (!game){
+        main_error(ALLOCATION);
+    }
+    int err;
+    game->map = load_map("map", &err);
+    if (err){
+        free(game);
+        main_error(err);
+    }
+    game->number_of_beasts = 0;
+    game->number_of_players = 0;
+    game->rounds = 0;
+    game->players = NULL;
+    game->beasts = NULL;
+    return game;
+}
+
 int spawn_player(GAME *game){
     PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
     if (!new_players){
@@ -30,6 +49,7 @@ int spawn_player(GAME *game){
     (player)->deaths = 0;
     (player)->in_bush = FALSE;
     (player)->in_camp = FALSE;
+    (player)->already_moved = FALSE;
 
     (game->number_of_players)++;
     generate_map(game);
@@ -236,13 +256,26 @@ void show_players_info(GAME *game){
     int size = 5;
     for (int i = 0; i < game->number_of_players; i++){
         int j = i + 1;
+        // TODO refaktoryzacja
+        move(0, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(0, WIDTH + (size * j), "Player ID: %d", (game->players + i)->id);
+        move(2, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(2 , WIDTH + (size * j), "Player spawn(X/Y): %d/%d", (game->players + i)->x_spawn, (game->players + i)->y_spawn);
+        move(4, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(4 , WIDTH + (size * j), "Current X/Y: %d/%d", (game->players + i)->x_position, (game->players + i)->y_position);
+        clrtoeol();
         mvprintw(6 , WIDTH + (size * j), "Carried: %d", (game->players + i)->carried);
+        clrtoeol();
         mvprintw(8 , WIDTH + (size * j), "Brought: %d", (game->players + i)->brought);
+        clrtoeol();
         mvprintw(10, WIDTH + (size * j), "Deaths: %d", (game->players + i)->deaths);
-        mvprintw(12 , WIDTH + (size * j), "Press q/Q to quit");
+        clrtoeol();
+        mvprintw(12, WIDTH + (size * j), "Rounds: %d", game->rounds);
+        clrtoeol();
+        mvprintw(14 , WIDTH + (size * j), "Press q/Q to quit");
         size += 5;
     }
     move(0, 0);

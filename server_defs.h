@@ -13,10 +13,13 @@ struct game_t{
     struct beast_t *beasts;
     unsigned int number_of_players;
     unsigned int number_of_beasts;
+    unsigned int rounds;
+    pthread_t tick_thread;
 };
 
 struct player_t{
     unsigned char id;
+    bool already_moved;
     bool in_bush;
     bool in_camp;
     int x_spawn;
@@ -30,6 +33,7 @@ struct player_t{
 
 struct beast_t{
     unsigned char id;
+    bool already_moved;
     bool in_bush;
     bool in_camp;
     int x_position;
@@ -59,6 +63,7 @@ typedef struct player_t PLAYER;
 typedef struct beast_t BEAST;
 typedef struct game_t GAME;
 
+GAME * create_game();
 int spawn_player(GAME *game);
 int spawn_beast(BEAST **beast, char **map, pthread_t* thread);
 char ** load_map(char *filename, int *err);
@@ -69,9 +74,6 @@ void show_players_info(GAME *game);
 void move_player(enum DIRECTION side, PLAYER *player, char **map);
 void generate_element(enum TYPE type, char **map);
 void main_error(enum ERROR err);
-
-// THREADS
-void * beast_thread(void * arg);
 
 
 #endif
