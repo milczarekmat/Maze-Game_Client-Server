@@ -63,6 +63,7 @@ int spawn_player(PLAYER **ptr, char **map);
 int spawn_beast(BEAST **beast, char **map, pthread_t* thread);
 char ** load_map(char *filename, int *err);
 void free_map(char **map, int height);
+void free_game(GAME **game);
 void generate_map(int width, int height, char **map);
 void show_players_info(PLAYER **players);
 void move_player(enum DIRECTION side, PLAYER *player, char **map);

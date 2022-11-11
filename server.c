@@ -44,54 +44,54 @@ int main() {
     getmaxyx(stdscr,rows,cols);
 
     if (rows < HEIGHT || cols < WIDTH){
-        free(game);
+        free_game(&game);
         main_error(SIZE_OF_CONSOLE);
     }
 
-    GAME *new_player = realloc(game->players, (game->number_of_players + 1) * sizeof(GAME));
-    if (!new_player){
-        //TODO zwalnianie pamieci
+    PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
+    if (!new_players){
+        free_game(&game);
+        main_error(ALLOCATION);
     }
+    game->players = new_players;
     //TODO OGARNAC DALEJ
-    PLAYER **players = calloc(2, sizeof(PLAYER *));
+/*    PLAYER **players = calloc(2, sizeof(PLAYER *));
 
     if (!players){
         free(game);
         main_error(ALLOCATION);
-    }
+    }*/
 
-    int check_alloc = spawn_player(players, game->map);
+    //TODO zmienic wszedzie z &game->players
+    int check_alloc = spawn_player(&game->players, game->map);
 
     if (check_alloc){
-        free(game);
+        free_game(&game);
         main_error(ALLOCATION);
     }
 
-    show_players_info(players);
+    show_players_info(&game->players);
     keypad(stdscr, TRUE);
     while(1){
         int ch = getch();
         switch (ch) {
             case 'q':
             case 'Q':
-                free(*players);
-                free(players);
-                free_map(game->map, HEIGHT);
-                free(game);
+                free_game(&game);
                 endwin();
                 return 0;
                 // TODO PRZEKAZYWANIE ODPOWIEDNIEGO GRACZA
             case KEY_UP:
-                move_player(UP, *players, game->map);
+                move_player(UP, game->players, game->map);
                 break;
             case KEY_DOWN:
-                move_player(DOWN, *players, game->map);
+                move_player(DOWN, game->players, game->map);
                 break;
             case KEY_LEFT:
-                move_player(LEFT, *players, game->map);
+                move_player(LEFT, game->players, game->map);
                 break;
             case KEY_RIGHT:
-                move_player(RIGHT, *players, game->map);
+                move_player(RIGHT, game->players, game->map);
                 break;
             case 'c':
                 generate_element(COIN, game->map);
@@ -107,7 +107,7 @@ int main() {
         mvprintw(14, WIDTH + 5, "Round: %d", round_num);
         tick(&flag_main, &round_num);
         generate_map(WIDTH, HEIGHT, game->map);
-        show_players_info(players);
+        show_players_info(&game->players);
     }
     //pthread_mutex_destroy(&mutex);
 }
