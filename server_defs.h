@@ -15,6 +15,7 @@ struct game_t{
     unsigned int number_of_beasts;
     unsigned int rounds;
     pthread_t tick_thread;
+    pthread_mutex_t map_mutex;
 };
 
 struct player_t{
@@ -29,6 +30,7 @@ struct player_t{
     unsigned int deaths;
     int x_position;
     int y_position;
+    pthread_mutex_t player_mutex;
 };
 
 struct beast_t{
@@ -71,7 +73,7 @@ void free_map(char **map, int height);
 void free_game(GAME **game);
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
-void move_player(enum DIRECTION side, PLAYER *player, char **map);
+void move_player(enum DIRECTION side, GAME* game, unsigned int id);
 void generate_element(enum TYPE type, char **map);
 void main_error(enum ERROR err);
 
