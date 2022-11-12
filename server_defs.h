@@ -34,6 +34,7 @@ struct player_t{
     int y_position;
     pthread_mutex_t player_mutex;
     pthread_cond_t move_wait;
+    pthread_cond_t bush_wait;
 };
 
 struct beast_t{
@@ -73,7 +74,7 @@ typedef struct game_t GAME;
 
 GAME * create_game();
 int spawn_player(GAME *game);
-int spawn_beast(BEAST **beast, char **map, pthread_t* thread);
+int spawn_beast(GAME *game);
 char ** load_map(char *filename, int *err);
 void free_map(char **map, int height);
 void free_game(GAME **game);

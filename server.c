@@ -3,7 +3,7 @@
 #include "server_defs.h"
 #include "server_threads.h"
 
-// TODO ogarnac mutex w warunku (yt), jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zwolnic mutex bestii, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO naprawic blad z watkami, ogarnac mutex w warunku (yt), jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zwolnic mutex bestii, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
 int main() {
     GAME* game = create_game();
 
@@ -28,6 +28,10 @@ int main() {
     cbreak();
     while(1){
         int ch = getch();
+/*        pthread_mutex_lock(&game->players->player_mutex);
+            if
+        pthread_mutex_unlock(&game->players->player_mutex);*/
+
         switch (ch) {
             case 'q':
             case 'Q':
@@ -55,6 +59,10 @@ int main() {
                 break;
             case 'T':
                 generate_element(TREASURE, game);
+                break;
+            case 'b':
+            case 'B':
+                spawn_beast(game);
                 break;
         }
     }

@@ -43,22 +43,23 @@ int spawn_player(GAME *game){
     game->map[y][x] = '1';
     // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
-    (player)->x_spawn = x;
-    (player)->x_position = x;
-    (player)->y_spawn = y;
-    (player)->y_position = y;
-    (player)->id = game->number_of_players + 1;
-    (player)->carried = 0;
-    (player)->brought = 0;
-    (player)->deaths = 0;
-//    (player)->in_bush = FALSE;
-//    (player)->out_bush = FALSE;
-    (player)->bush_status = 0;
-    (player)->in_camp = FALSE;
-    (player)->already_moved = FALSE;
+    player->x_spawn = x;
+    player->x_position = x;
+    player->y_spawn = y;
+    player->y_position = y;
+    player->id = game->number_of_players + 1;
+    player->carried = 0;
+    player->brought = 0;
+    player->deaths = 0;
+//    player->in_bush = FALSE;
+//    player->out_bush = FALSE;
+    player->bush_status = 0;
+    player->in_camp = FALSE;
+    player->already_moved = FALSE;
 
     pthread_mutex_init(&player->player_mutex, NULL);
     pthread_cond_init(&player->move_wait, NULL);
+    pthread_cond_init(&player->bush_wait, NULL);
 
     (game->number_of_players)++;
     generate_map(game);
@@ -66,30 +67,36 @@ int spawn_player(GAME *game){
 }
 
 //TODO zmienic na strukture funkcji wg spawn_player
-int spawn_beast(BEAST **beast, char **map, pthread_t* thread){
-    *beast = malloc(sizeof(PLAYER));
+int spawn_beast(GAME *game){
+    BEAST *new_beasts = realloc(game->beasts, (game->number_of_beasts + 1) * sizeof(BEAST));
 
-    if (!*beast){
+    if (!new_beasts){
         return -1;
     }
+    game->beasts = new_beasts;
+    BEAST* beast = game->beasts + game->number_of_beasts;
 
-    //muteks
+    pthread_mutex_lock(&game->map_mutex);
     int x, y;
     srand(time(NULL));
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
     }
-    while(map[y][x] != ' ');
-    // TODO zmienic na spawnowanie wg id
-    map[y][x] = '*';
-    (*beast)->x_position = x;
-    (*beast)->y_position = y;
-    //game->;
-    // watek bestii
-    //generate_map(WIDTH, HEIGHT, map);
-    return 0;
+    while(game->map[y][x] != ' ');
+    // TODO zmienic na mozliwosc respienia w krzakach
+    game->map[y][x] = '*';
+    pthread_mutex_unlock(&game->map_mutex);
+    beast->x_position = x;
+    beast->y_position = y;
+    beast->id = game->number_of_players + 1;
 
+    pthread_mutex_init(&beast->beast_mutex, NULL);
+
+    // watek bestii
+    (game->number_of_beasts)++;
+    generate_map(game);
+    return 0;
 }
 
 void generate_map(GAME *game){
@@ -102,6 +109,7 @@ void generate_map(GAME *game){
     init_pair(3, COLOR_WHITE, COLOR_BLACK); // kolor tła
     init_pair(4, COLOR_WHITE, COLOR_RED); // kolor obozu
     init_pair(5, COLOR_BLACK, COLOR_YELLOW); // kolor skarbów
+    init_pair(6, COLOR_RED, COLOR_WHITE); // kolor bestii
     bkgd(COLOR_PAIR(3));
 
     for (int i=0; i<HEIGHT; i++){
@@ -114,6 +122,9 @@ void generate_map(GAME *game){
             }
             else if (game->map[i][j] == 'c' || game->map[i][j] == 't' || game->map[i][j] == 'T'){
                 mvaddch(i, j, game->map[i][j] | COLOR_PAIR(5));
+            }
+            else if (game->map[i][j] == '*'){
+                mvaddch(i, j, game->map[i][j] | COLOR_PAIR(6));
             }
             else{
                 mvaddch(i, j, game->map[i][j] | A_ALTCHARSET | COLOR_PAIR(1));
@@ -179,6 +190,10 @@ void free_game(GAME **game){
     for (int i=0; i<(*game)->number_of_players; i++){
         pthread_mutex_destroy(&((*game)->players + i)->player_mutex);
         pthread_cond_destroy(&((*game)->players + i)->move_wait);
+        pthread_cond_destroy(&((*game)->players + i)->bush_wait);
+    }
+    for (int i=0; i<(*game)->number_of_beasts; i++){
+        pthread_mutex_destroy(&((*game)->beasts + i)->beast_mutex);
     }
     free(*game);
 }
@@ -198,16 +213,16 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
     PLAYER *player = game->players + id;
 
     pthread_mutex_lock(&player->player_mutex);
+    //TODO PROBLEM Z RACE CONDITIONS
     if (player->already_moved){
         pthread_mutex_unlock(&player->player_mutex);
         return;
     }
+
+/*    pthread_mutex_unlock(&player->player_mutex);
+    pthread_mutex_lock(&player->player_mutex);*/
     if (player->bush_status > 1){
-        pthread_cond_wait(&player->move_wait, &player->player_mutex);
-        //pthread_mutex_lock(&game->map_mutex);
-        //game->map[player->y_position][player->x_position] = '#';
-        //pthread_mutex_unlock(&game->map_mutex);
-        //sprawdzic jeszcze raz
+        pthread_cond_wait(&player->bush_wait, &player->player_mutex);
     }
     int player_x = player->x_position, player_y = player->y_position;
     bool player_in_camp = player->in_camp;
@@ -240,7 +255,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
     }
 
 
-    // TODO sprawdzic ponizej
+    // TODO sprawdzic ponizej race conidtions
     pthread_mutex_lock(&game->map_mutex);
     if (game->map[player_y + y][player_x + x] == 'a'){
         pthread_mutex_unlock(&game->map_mutex);

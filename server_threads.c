@@ -20,8 +20,9 @@ void * tick(void * arg){
                 (game->players + i)->bush_status -= 1;
             }
             (game->players + i)->already_moved = false;
+            pthread_cond_signal(&(game->players + i)->move_wait);
             if ((game->players + i)->bush_status == 1){
-                pthread_cond_signal(&(game->players + i)->move_wait);
+                pthread_cond_signal(&(game->players + i)->bush_wait);
             }
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
