@@ -3,7 +3,7 @@
 #include "server_defs.h"
 #include "server_threads.h"
 
-// TODO ogarnac wylaczanie watkow, krzaki, zmiana spawn beast, zwolnic mutex bestii
+// TODO ogarnac wylaczanie watkow, krzaki, zmiana spawn beast, zwolnic mutex bestii, zmienic bush_status
 int main() {
     GAME* game = create_game();
 
@@ -25,6 +25,8 @@ int main() {
     show_players_info(game);
     pthread_create(&game->tick_thread, NULL, &tick, game);
     keypad(stdscr, TRUE);
+    //nodelay(stdscr, TRUE);
+    cbreak();
     while(1){
         int ch = getch();
         switch (ch) {

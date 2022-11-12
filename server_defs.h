@@ -21,8 +21,10 @@ struct game_t{
 struct player_t{
     unsigned char id;
     bool already_moved;
-    bool in_bush;
+//    bool in_bush;
+//    bool out_bush;
     bool in_camp;
+    unsigned short bush_status;
     int x_spawn;
     int y_spawn;
     unsigned int carried;
@@ -31,6 +33,7 @@ struct player_t{
     int x_position;
     int y_position;
     pthread_mutex_t player_mutex;
+    pthread_cond_t move_wait;
 };
 
 struct beast_t{
