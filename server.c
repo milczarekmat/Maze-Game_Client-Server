@@ -3,9 +3,7 @@
 #include "server_defs.h"
 #include "server_threads.h"
 
-//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-// TODO zwolnic mutex playera, ogarnac wylaczanie watkow, respienie coinow od razu bez tickow (mutex na generate_map?), zmiana spawn beast
+// TODO ogarnac wylaczanie watkow, krzaki, zmiana spawn beast, zwolnic mutex bestii
 int main() {
     GAME* game = create_game();
 
@@ -49,18 +47,17 @@ int main() {
                 move_player(RIGHT, game, 0);
                 break;
             case 'c':
-                generate_element(COIN, game->map);
+                generate_element(COIN, game);
                 break;
             case 't':
-                generate_element(SMALL_TREASURE, game->map);
+                generate_element(SMALL_TREASURE, game);
                 break;
             case 'T':
-                generate_element(TREASURE, game->map);
+                generate_element(TREASURE, game);
                 break;
         }
         //erase();
         //generate_map(game);
         //show_players_info(game);
     }
-    //pthread_mutex_destroy(&mutex);
 }

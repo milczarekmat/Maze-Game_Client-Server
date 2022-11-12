@@ -74,7 +74,7 @@ void free_game(GAME **game);
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
-void generate_element(enum TYPE type, char **map);
+void generate_element(enum TYPE type, GAME* game);
 void main_error(enum ERROR err);
 
 
