@@ -1,5 +1,4 @@
 #include "server_threads.h"
-#include <ncurses.h>
 
 void * tick(void * arg){
     GAME *game = (GAME *)arg;
@@ -10,10 +9,9 @@ void * tick(void * arg){
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
 
-        usleep(300000);
+        usleep(400000);
         generate_map(game); // muteks mapy
         for (int i=0; i<game->number_of_players; i++){
-            // TODO wait cond for bushes
             pthread_mutex_lock(&(game->players + i)->player_mutex);
 //            if ((game->players + i)->in_bush){
 //                (game->players + i)->out_bush = true;
@@ -30,5 +28,9 @@ void * tick(void * arg){
         // TODO to samo dla bestii
         (game->rounds)++;
     }
-
 }
+
+/*
+void * beast_thread(void * arg){
+    GAME *game = (GAME *)arg;
+}*/

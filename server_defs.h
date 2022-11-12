@@ -39,14 +39,17 @@ struct player_t{
 struct beast_t{
     unsigned char id;
     bool already_moved;
-    bool in_bush;
-    bool in_camp;
+    bool seeing_player;
+    bool coming_until_wall;
     int x_position;
     int y_position;
+    pthread_mutex_t beast_mutex;
+    pthread_cond_t move_wait;
 };
 
 enum DIRECTION{
-    LEFT = 1,
+    STAY = 0,
+    LEFT,
     RIGHT,
     DOWN,
     UP

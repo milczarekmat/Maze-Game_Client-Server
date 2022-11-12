@@ -40,12 +40,13 @@ int spawn_player(GAME *game){
     }
     while(game->map[y][x] != ' ');
     // TODO zmienic na spawnowanie wg id
-    game->map[16][26] = '1';
+    game->map[y][x] = '1';
+    // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
-    (player)->x_spawn = 26;
-    (player)->x_position = 26;
-    (player)->y_spawn = 16;
-    (player)->y_position = 16;
+    (player)->x_spawn = x;
+    (player)->x_position = x;
+    (player)->y_spawn = y;
+    (player)->y_position = y;
     (player)->id = game->number_of_players + 1;
     (player)->carried = 0;
     (player)->brought = 0;
@@ -84,9 +85,6 @@ int spawn_beast(BEAST **beast, char **map, pthread_t* thread){
     map[y][x] = '*';
     (*beast)->x_position = x;
     (*beast)->y_position = y;
-    (*beast)->in_bush = FALSE;
-    (*beast)->in_camp = FALSE;
-
     //game->;
     // watek bestii
     //generate_map(WIDTH, HEIGHT, map);
@@ -336,9 +334,6 @@ void show_players_info(GAME *game){
         move(12, WIDTH + (size * j));
         clrtoeol();
         mvprintw(12, WIDTH + (size * j), "Round number: %d", game->rounds);
-        mvprintw(14, WIDTH + (size * j), "Bush: %d", (game->players + i)->bush_status);
-        mvprintw(16, WIDTH + (size * j), "Moved: %d", (game->players + i)->already_moved);
-        //mvprintw(16, WIDTH + (size * j), "Out Bush: %d", (game->players + i)->out_bush);
         mvprintw(18 , WIDTH + (size * j), "Press q/Q to quit");
         size += 5;
     }
