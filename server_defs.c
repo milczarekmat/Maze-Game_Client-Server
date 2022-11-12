@@ -67,6 +67,7 @@ int spawn_beast(BEAST **beast, char **map, pthread_t* thread){
         return -1;
     }
 
+    //muteks
     int x, y;
     srand(time(NULL));
     do{
@@ -173,6 +174,9 @@ void free_game(GAME **game){
     }
     free_map((*game)->map, HEIGHT);
     pthread_mutex_destroy(&(*game)->map_mutex);
+    for (int i=0; i<(*game)->number_of_players; i++){
+        pthread_mutex_destroy(&((*game)->players + i)->player_mutex);
+    }
     free(*game);
 }
 
@@ -292,9 +296,17 @@ void show_players_info(GAME *game){
         move(4, WIDTH + (size * j));
         clrtoeol();
         mvprintw(4 , WIDTH + (size * j), "Current X/Y: %d/%d", (game->players + i)->x_position, (game->players + i)->y_position);
+        move(6, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(6 , WIDTH + (size * j), "Carried: %d", (game->players + i)->carried);
+        move(8, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(8 , WIDTH + (size * j), "Brought: %d", (game->players + i)->brought);
+        move(10, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(10, WIDTH + (size * j), "Deaths: %d", (game->players + i)->deaths);
+        move(12, WIDTH + (size * j));
+        clrtoeol();
         mvprintw(12, WIDTH + (size * j), "Round number: %d", game->rounds);
         //mvprintw(14, WIDTH + (size * j), "Already moved: %d", (game->players + i)->already_moved);
         mvprintw(16 , WIDTH + (size * j), "Press q/Q to quit");
@@ -304,24 +316,27 @@ void show_players_info(GAME *game){
     refresh();
 }
 
-void generate_element(enum TYPE type, char **map){
+void generate_element(enum TYPE type, GAME* game){
     srand(time(NULL));
     int x, y;
+    pthread_mutex_lock(&game->map_mutex);
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
     }
-    while (map[y][x] != ' ');
+    while (game->map[y][x] != ' ');
 
     if (type == COIN){
-        map[y][x] = 'c';
+        game->map[y][x] = 'c';
     }
     else if (type == SMALL_TREASURE){
-        map[y][x] = 't';
+        game->map[y][x] = 't';
     }
     else if (type == TREASURE){
-        map[y][x] = 'T';
+        game->map[y][x] = 'T';
     }
+    pthread_mutex_unlock(&game->map_mutex);
+    generate_map(game);
 }
 
 void main_error(enum ERROR err){
