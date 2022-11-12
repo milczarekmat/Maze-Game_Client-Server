@@ -5,7 +5,7 @@
 
 //pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// TODO respienie coinow od razu bez tickow, usuwanie zbednego info o graczu, zmiana flagi gracza przy ruchu, zmiana spawn beast
+// TODO zwolnic mutex playera, ogarnac wylaczanie watkow, respienie coinow od razu bez tickow (mutex na generate_map?), zmiana spawn beast
 int main() {
     GAME* game = create_game();
 
@@ -37,16 +37,16 @@ int main() {
                 return 0;
                 // TODO PRZEKAZYWANIE ODPOWIEDNIEGO GRACZA
             case KEY_UP:
-                move_player(UP, game->players, game->map);
+                move_player(UP, game, 0);
                 break;
             case KEY_DOWN:
-                move_player(DOWN, game->players, game->map);
+                move_player(DOWN, game, 0);
                 break;
             case KEY_LEFT:
-                move_player(LEFT, game->players, game->map);
+                move_player(LEFT, game, 0);
                 break;
             case KEY_RIGHT:
-                move_player(RIGHT, game->players, game->map);
+                move_player(RIGHT, game, 0);
                 break;
             case 'c':
                 generate_element(COIN, game->map);
@@ -59,8 +59,6 @@ int main() {
                 break;
         }
         //erase();
-        //mvprintw(14, WIDTH + 5, "Round: %d", round_num);
-        //tick(&flag_main, &round_num);
         //generate_map(game);
         //show_players_info(game);
     }
