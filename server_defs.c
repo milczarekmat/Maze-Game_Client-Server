@@ -20,20 +20,25 @@ GAME * create_game(){
     game->players = NULL;
     game->beasts = NULL;
     pthread_mutex_init(&game->map_mutex, NULL);
+    pthread_mutex_init(&game->players_mutex, NULL);
+    pthread_mutex_init(&game->beasts_mutex, NULL);
     return game;
 }
 
 int spawn_player(GAME *game){
-    //TODO muteks?
+    //TODO muteks, watek obslugujacy gracza
+    pthread_mutex_lock(&game->players_mutex);
     PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
     if (!new_players){
         return -1;
     }
     game->players = new_players;
     PLAYER *player = game->players + game->number_of_players;
+    pthread_mutex_unlock(&game->players_mutex);
 
     int x, y;
     srand(time(NULL));
+    pthread_mutex_lock(&game->map_mutex);
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
@@ -41,6 +46,7 @@ int spawn_player(GAME *game){
     while(game->map[y][x] != ' ');
     // TODO zmienic na spawnowanie wg id
     game->map[y][x] = '1';
+    pthread_mutex_unlock(&game->map_mutex);
     // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
     player->x_spawn = x;
@@ -68,6 +74,8 @@ int spawn_player(GAME *game){
 
 //TODO zmienic na strukture funkcji wg spawn_player
 int spawn_beast(GAME *game){
+    // TODO CZY POTTRZEBNY TU MUTEKS BESTII?
+    pthread_mutex_lock(&game->beasts_mutex);
     BEAST *new_beasts = realloc(game->beasts, (game->number_of_beasts + 1) * sizeof(BEAST));
 
     if (!new_beasts){
@@ -75,10 +83,11 @@ int spawn_beast(GAME *game){
     }
     game->beasts = new_beasts;
     BEAST* beast = game->beasts + game->number_of_beasts;
+    pthread_mutex_unlock(&game->beasts_mutex);
 
-    pthread_mutex_lock(&game->map_mutex);
     int x, y;
     srand(time(NULL));
+    pthread_mutex_lock(&game->map_mutex);
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
@@ -87,11 +96,17 @@ int spawn_beast(GAME *game){
     // TODO zmienic na mozliwosc respienia w krzakach
     game->map[y][x] = '*';
     pthread_mutex_unlock(&game->map_mutex);
+
     beast->x_position = x;
     beast->y_position = y;
     beast->id = game->number_of_players + 1;
+    beast->already_moved = false;
+    beast->seeing_player = false;
+    beast->coming_until_wall = false;
+    beast->last_encountered_object = ' ';
 
     pthread_mutex_init(&beast->beast_mutex, NULL);
+    pthread_cond_init(&beast->move_wait, NULL);
 
     // watek bestii
     (game->number_of_beasts)++;
@@ -187,6 +202,8 @@ void free_game(GAME **game){
     }
     free_map((*game)->map, HEIGHT);
     pthread_mutex_destroy(&(*game)->map_mutex);
+    pthread_mutex_destroy(&(*game)->players_mutex);
+    pthread_mutex_destroy(&(*game)->beasts_mutex);
     for (int i=0; i<(*game)->number_of_players; i++){
         pthread_mutex_destroy(&((*game)->players + i)->player_mutex);
         pthread_cond_destroy(&((*game)->players + i)->move_wait);
