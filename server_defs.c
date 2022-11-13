@@ -3,6 +3,7 @@
 #include <time.h>
 #include <ncurses.h>
 
+
 GAME * create_game(){
     GAME *game = malloc(sizeof(GAME));
     if (!game){
@@ -99,6 +100,8 @@ int spawn_beast(GAME *game){
 
     beast->x_position = x;
     beast->y_position = y;
+    beast->x_to_player = 0;
+    beast->y_to_player = 0;
     beast->id = game->number_of_players + 1;
     beast->already_moved = false;
     beast->seeing_player = false;
@@ -216,10 +219,6 @@ void free_game(GAME **game){
 }
 
 void free_map(char **map, int height){
-    if (!map || height<= 0){
-        return;
-    }
-
     for (int i=0; i<height; i++){
         free(*(map + i));
     }
@@ -410,5 +409,228 @@ void main_error(enum ERROR err){
     else{
         printf("Too small size of console to play!\n");
         exit(3);
+    }
+}
+
+void check_beast_vision(GAME *game, BEAST *beast){
+    pthread_mutex_lock(&beast->beast_mutex);
+    int x = beast->x_position, y = beast->y_position;
+    pthread_mutex_unlock(&beast->beast_mutex);
+
+    //TODO dla bool wall_tab (w strukturze beast?)
+    bool** walls = calloc(5, sizeof(bool *));
+
+    if (!walls){
+        perror("Failed to allocate memory for walls_tab");
+        exit(3);
+    }
+
+    for (int i=0; i<5; i++){
+        *(walls + i) = calloc(5, sizeof(bool));
+
+        if (!*(walls + i)){
+            for (int j=0; j<i; j++){
+                free(*(walls + j));
+            }
+            free(walls);
+            perror("Failed to allocate memory for walls_tab");
+            exit(3);
+        }
+    }
+    //bool wall_tab[5][5];
+    // TODO kopia widoku bestii do map_reach
+    //char map_reach[5][5];
+
+    //int offset_y, offset_x;
+
+    enum DIRECTION direct;
+
+    pthread_mutex_lock(&game->map_mutex);
+    for (direct=1; direct<=4; direct++){
+        check_player_occurrence(game, beast, walls, x, y, 1, direct, STAY);
+        // TODO race conditions?
+        //TODO MUTEKS DLA BESTII!!! I PONIZEJ
+        if (beast->seeing_player) {
+            pthread_mutex_unlock(&game->map_mutex);
+            return;
+        }
+    }
+    for (direct=1; direct<=2; direct++){
+        for (enum DIRECTION addit=3; addit<=4; addit++){
+            check_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
+            // TODO race conditions?
+            if (beast->seeing_player) {
+                pthread_mutex_unlock(&game->map_mutex);
+                return;
+            }
+        }
+    }
+    for (direct=1; direct<=4; direct++) {
+        int wall_x = 2, wall_y = 2;
+        offset_adaptation(direct, &wall_y, &wall_x);
+        if (walls[wall_y][wall_x]){
+            //sytuacja gdy, w pionie lub poziomie o jedno pole wystepuje sciana
+            continue;
+        }
+        check_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
+        // TODO race conditions?
+        if (beast->seeing_player) {
+            pthread_mutex_unlock(&game->map_mutex);
+            return;
+        }
+    }
+    for (direct=1; direct<=2; direct++) {
+        for (enum DIRECTION addit=3; addit<=4; addit++){
+            int wall_x = 2, wall_y = 2, offset_y = 0, offset_x = 0;
+            bool wall_flag = false;
+            offset_adaptation(direct, &wall_y, &wall_x);
+            offset_adaptation(addit, &wall_y, &wall_x);
+            offset_adaptation(direct, &offset_y, &offset_x);
+            offset_adaptation(addit, &offset_y, &offset_x);
+            if (walls[wall_y][wall_x]){
+                continue;
+            }
+            check_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 4, direct, STAY);
+            int wall_x_addit = wall_x, wall_y_addit = wall_y;
+            offset_adaptation(addit, &wall_y_addit, &wall_x_addit);
+            offset_adaptation(direct, &wall_y, &wall_x);
+            // TODO MUTEKS REKURSYWNY beast
+            if (beast->seeing_player){
+                if (walls[wall_y - offset_y][wall_x - offset_x]){
+                    wall_flag = true;
+                }
+                if (!wall_flag){
+                    beast->y_to_player += offset_y;
+                    beast->x_to_player += offset_x;
+                    pthread_mutex_unlock(&game->map_mutex);
+                    return;
+                }
+            }
+            beast->seeing_player = false;
+            wall_flag = false;
+            check_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 4, addit, STAY);
+            if (beast->seeing_player){
+                if (walls[wall_y_addit - offset_y][wall_x_addit - offset_x]){
+                    wall_flag = true;
+                }
+                if (!wall_flag){
+                    beast->y_to_player += offset_y;
+                    beast->x_to_player += offset_x;
+                    pthread_mutex_unlock(&game->map_mutex);
+                    return;
+                }
+            }
+            beast->seeing_player = false;
+            wall_flag = false;
+        }
+    }
+
+    for (direct=1; direct<=2; direct++) {
+        for (enum DIRECTION addit = 3; addit <= 4; addit++) {
+            int wall_x = 2, wall_y = 2, offset_y = 0, offset_x = 0;
+            offset_adaptation(direct, &wall_y, &wall_x);
+            offset_adaptation(addit, &wall_y, &wall_x);
+            offset_adaptation(direct, &offset_y, &offset_x);
+            offset_adaptation(addit, &offset_y, &offset_x);
+            if (walls[wall_y][wall_x]) {
+                continue;
+            }
+            check_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 2, direct, addit);
+            if (beast->seeing_player){
+                beast->y_to_player += offset_y;
+                beast->x_to_player += offset_x;
+                pthread_mutex_unlock(&game->map_mutex);
+                return;
+            }
+        }
+    }
+
+
+
+    pthread_mutex_unlock(&game->map_mutex);
+
+    // TODO ogarnac kwestie z wyjsciem poza mape?
+
+    // TODO funkja z alokacji i zwalniania walls_tab
+    for (int i=0; i<5; i++){
+        free(*(walls + i));
+    }
+    free(walls);
+
+    // MUTEKS DLA BESTII
+    pthread_mutex_lock(&beast->beast_mutex);
+    beast->seeing_player = false;
+    beast->x_to_player = 0;
+    beast->y_to_player = 0;
+    pthread_mutex_unlock(&beast->beast_mutex);
+}
+
+void founded_player(BEAST* beast, int x, int y){
+    pthread_mutex_lock(&beast->beast_mutex);
+    beast->seeing_player = true;
+    beast-> x_to_player = x;
+    beast-> y_to_player = y;
+    pthread_mutex_unlock(&beast->beast_mutex);
+}
+
+void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x){
+    switch (direction){
+        case LEFT:
+            *offset_x -= 1;
+            break;
+        case RIGHT:
+            *offset_x += 1;
+            break;
+        case UP:
+            *offset_y -= 1;
+            break;
+        case DOWN:
+            *offset_y += 1;
+            break;
+        default:
+            break;
+    }
+}
+
+void check_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
+                             unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction)
+{
+    int offset_y = 0, offset_x = 0, wall_x = 2, wall_y = 2;
+    int end_flag = 0;
+    // TODO KOMENTARZE OPISUJACE DZIALANIE do stopnia 3
+    switch (depth_of_search) {
+        case 1:
+            offset_adaptation(direction, &offset_y, &offset_x);
+            offset_adaptation(direction, &wall_y, &wall_x);
+            break;
+        case 2:
+            offset_adaptation(direction, &offset_y, &offset_x);
+            offset_adaptation(additional_direction, &offset_y, &offset_x);
+            offset_adaptation(direction, &wall_y, &wall_x);
+            offset_adaptation(additional_direction, &wall_y, &wall_x);
+            break;
+        case 3:
+            for (int i=0; i<2; i++){
+                offset_adaptation(direction, &offset_y, &offset_x);
+                offset_adaptation(direction, &wall_y, &wall_x);
+            }
+            break;
+        case 4:
+            offset_adaptation(direction, &offset_y, &offset_x);
+            if (isdigit(game->map[y + offset_y][x + offset_x])){
+                founded_player(beast, offset_x, offset_y);
+            }
+            break;
+    }
+
+    if (isdigit(game->map[y + offset_y][x + offset_x])){
+        founded_player(beast, offset_x, offset_y);
+        return;
+    }
+    if (game->map[y + offset_y][x + offset_x] == 'a'){
+        walls[wall_y][wall_x] = true;
+    }
+    else{
+        walls[wall_y][wall_x] = false;
     }
 }
