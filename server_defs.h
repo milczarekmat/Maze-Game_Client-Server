@@ -3,16 +3,17 @@
 
 #include <stdbool.h>
 #include <pthread.h>
+#include <ctype.h>
 
 #define HEIGHT 25
 #define WIDTH 45
 
 enum DIRECTION{
     STAY = 0,
-    LEFT,
-    RIGHT,
-    DOWN,
-    UP
+    LEFT = 1,
+    RIGHT = 2,
+    DOWN = 3,
+    UP = 4
 };
 
 enum TYPE{
@@ -68,6 +69,8 @@ struct beast_t{
     int x_position;
     int y_position;
     char last_encountered_object;
+    int x_to_player;
+    int y_to_player;
     enum DIRECTION last_direction;
     pthread_mutex_t beast_mutex;
     pthread_cond_t move_wait;
@@ -84,11 +87,21 @@ void show_players_info(GAME *game);
 int spawn_player(GAME *game);
 int spawn_beast(GAME *game);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
-void check_vision(BEAST* beast);
+
 void generate_element(enum TYPE type, GAME* game);
 void main_error(enum ERROR err);
 void free_map(char **map, int height);
 void free_game(GAME **game);
 
+
+void check_beast_vision(GAME *game, BEAST *beast);
+bool check_fields_for_player_occurrence(GAME* game, int x, int y);
+char check_field(char **map, int x, int y);
+void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
+void founded_player(BEAST* beast, int x, int y);
+void check_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
+                             unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction);
+//void beast_vision_step_2(GAME *game, BEAST *beast, bool** walls,
+     //                    int x, int y, int left_right, int up_down);
 
 #endif

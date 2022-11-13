@@ -11,7 +11,6 @@ void * tick(void * arg){
 
         usleep(400000);
         generate_map(game);
-        // TODO muteks game->players dla petli
         pthread_mutex_lock(&game->players_mutex);
         for (int i=0; i<game->number_of_players; i++){
             pthread_mutex_lock(&(game->players + i)->player_mutex);
@@ -35,7 +34,8 @@ void * tick(void * arg){
             pthread_mutex_lock(&beast->beast_mutex);
             beast->already_moved = false;
             pthread_mutex_lock(&game->map_mutex);
-            game->map[beast->y_position][beast->x_position];
+            // TODO przeniesc to ponizej do move_beast
+            game->map[beast->y_position][beast->x_position] = '*';
             switch (beast->last_direction){
                 case LEFT:
                     game->map[beast->y_position][beast->x_position + 1] = beast->last_encountered_object;
@@ -59,8 +59,8 @@ void * tick(void * arg){
         (game->rounds)++;
     }
 }
-/*
-void * beast_thread(void * arg){
+
+/*void * beast_thread(void * arg){
     GAME* game = (GAME *)arg;
     pthread_mutex_lock(&game->beasts_mutex);
     BEAST* beast = game->beasts + game->number_of_beasts;
@@ -84,6 +84,4 @@ void * beast_thread(void * arg){
                 move_beast(direct);
             }
         }
-    }
-
-}*/
+    }*/

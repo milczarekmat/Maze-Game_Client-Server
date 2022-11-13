@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "server_defs.h"
 #include "server_threads.h"
 
