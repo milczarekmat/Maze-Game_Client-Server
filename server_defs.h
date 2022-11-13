@@ -7,6 +7,26 @@
 #define HEIGHT 25
 #define WIDTH 45
 
+enum DIRECTION{
+    STAY = 0,
+    LEFT,
+    RIGHT,
+    DOWN,
+    UP
+};
+
+enum TYPE{
+    COIN,
+    SMALL_TREASURE,
+    TREASURE
+};
+
+enum ERROR{
+    FILE_OPEN = 1,
+    ALLOCATION,
+    SIZE_OF_CONSOLE,
+};
+
 struct game_t{
     char **map;
     struct player_t *players;
@@ -16,6 +36,9 @@ struct game_t{
     unsigned int rounds;
     pthread_t tick_thread;
     pthread_mutex_t map_mutex;
+    pthread_mutex_t players_mutex;
+    pthread_mutex_t beasts_mutex;
+    // TODO players mutex
 };
 
 struct player_t{
@@ -44,28 +67,10 @@ struct beast_t{
     bool coming_until_wall;
     int x_position;
     int y_position;
+    char last_encountered_object;
+    enum DIRECTION last_direction;
     pthread_mutex_t beast_mutex;
     pthread_cond_t move_wait;
-};
-
-enum DIRECTION{
-    STAY = 0,
-    LEFT,
-    RIGHT,
-    DOWN,
-    UP
-};
-
-enum TYPE{
-    COIN,
-    SMALL_TREASURE,
-    TREASURE
-};
-
-enum ERROR{
-    FILE_OPEN = 1,
-    ALLOCATION,
-    SIZE_OF_CONSOLE,
 };
 
 typedef struct player_t PLAYER;
@@ -73,16 +78,17 @@ typedef struct beast_t BEAST;
 typedef struct game_t GAME;
 
 GAME * create_game();
-int spawn_player(GAME *game);
-int spawn_beast(GAME *game);
 char ** load_map(char *filename, int *err);
-void free_map(char **map, int height);
-void free_game(GAME **game);
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
+int spawn_player(GAME *game);
+int spawn_beast(GAME *game);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
+void check_vision(BEAST* beast);
 void generate_element(enum TYPE type, GAME* game);
 void main_error(enum ERROR err);
+void free_map(char **map, int height);
+void free_game(GAME **game);
 
 
 #endif
