@@ -16,6 +16,7 @@ GAME * create_game(){
     game->rounds = 1;
     game->players = NULL;
     game->beasts = NULL;
+    game->beasts_threads = NULL;
     pthread_mutex_init(&game->map_mutex, NULL);
     pthread_mutex_init(&game->players_mutex, NULL);
     pthread_mutex_init(&game->beasts_mutex, NULL);
@@ -64,7 +65,10 @@ int spawn_player(GAME *game){
     pthread_cond_init(&player->move_wait, NULL);
     pthread_cond_init(&player->bush_wait, NULL);
 
+    // TODO DODAC MUTEKS PLAYERS?
+    pthread_mutex_lock(&game->players_mutex);
     (game->number_of_players)++;
+    pthread_mutex_unlock(&game->players_mutex);
     generate_map(game);
     return 0;
 }
@@ -149,25 +153,44 @@ char ** load_map(char *filename, int *err){
 }
 
 void free_game(GAME **game){
+    pthread_mutex_lock(&(*game)->beasts_mutex);
+    for (int i=0; i<(*game)->number_of_beasts; i++){
+        pthread_cancel(*((*game)->beasts_threads + i));
+    }
+    pthread_mutex_unlock(&(*game)->beasts_mutex);
+    pthread_cancel((*game)->tick_thread);
+
+    pthread_mutex_lock(&(*game)->map_mutex);
+    free_map((*game)->map, HEIGHT);
+    pthread_mutex_unlock(&(*game)->map_mutex);
+
+    pthread_mutex_lock(&(*game)->players_mutex);
+    for (int i=0; i<(*game)->number_of_players; i++){
+        pthread_mutex_destroy(&((*game)->players + i)->player_mutex);
+        pthread_cond_destroy(&((*game)->players + i)->move_wait);
+        pthread_cond_destroy(&((*game)->players + i)->bush_wait);
+    }
+    pthread_mutex_unlock(&(*game)->players_mutex);
+    pthread_mutex_lock(&(*game)->beasts_mutex);
+    for (int i=0; i<(*game)->number_of_beasts; i++){
+        pthread_mutex_destroy(&((*game)->beasts + i)->beast_mutex);
+    }
+    pthread_mutex_unlock(&(*game)->beasts_mutex);
+    pthread_mutex_destroy(&(*game)->map_mutex);
+    pthread_mutex_destroy(&(*game)->players_mutex);
+    pthread_mutex_destroy(&(*game)->beasts_mutex);
+
     if ((*game)->players){
         free((*game)->players);
     }
     if ((*game)->beasts){
         free((*game)->beasts);
     }
-    free_map((*game)->map, HEIGHT);
-    pthread_mutex_destroy(&(*game)->map_mutex);
-    pthread_mutex_destroy(&(*game)->players_mutex);
-    pthread_mutex_destroy(&(*game)->beasts_mutex);
-    for (int i=0; i<(*game)->number_of_players; i++){
-        pthread_mutex_destroy(&((*game)->players + i)->player_mutex);
-        pthread_cond_destroy(&((*game)->players + i)->move_wait);
-        pthread_cond_destroy(&((*game)->players + i)->bush_wait);
-    }
-    for (int i=0; i<(*game)->number_of_beasts; i++){
-        pthread_mutex_destroy(&((*game)->beasts + i)->beast_mutex);
+    if ((*game)->beasts_threads){
+        free((*game)->beasts_threads);
     }
     free(*game);
+    printf("Done\n");
 }
 
 void free_map(char **map, int height){
@@ -175,6 +198,25 @@ void free_map(char **map, int height){
         free(*(map + i));
     }
     free(map);
+}
+
+void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x){
+    switch (direction){
+        case LEFT:
+            *offset_x -= 1;
+            break;
+        case RIGHT:
+            *offset_x += 1;
+            break;
+        case UP:
+            *offset_y -= 1;
+            break;
+        case DOWN:
+            *offset_y += 1;
+            break;
+        default:
+            break;
+    }
 }
 
 void move_player(enum DIRECTION side, GAME* game, unsigned int id){
@@ -199,29 +241,24 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
 
 
     // TODO zmienic poruszanie wg id
-    int x, y;
+    int x = 0, y = 0;
     switch (side) {
         case LEFT:
-            y = 0;
-            x = -1;
+            offset_adaptation(LEFT, NULL, &x);
             break;
         case RIGHT:
-            y = 0;
-            x = 1;
+            offset_adaptation(RIGHT, NULL, &x);
             break;
         case UP:
-            y = -1;
-            x = 0;
+            offset_adaptation(UP, &y, NULL);
             break;
         case DOWN:
-            y = 1;
-            x = 0;
+            offset_adaptation(DOWN, &y, NULL);
             break;
         default:
             x = 0;
             y = 0;
     }
-
 
     // TODO sprawdzic ponizej race conidtions
     pthread_mutex_lock(&game->map_mutex);

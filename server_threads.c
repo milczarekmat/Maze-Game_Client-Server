@@ -1,4 +1,5 @@
 #include "server_threads.h"
+#include "beast.h"
 
 void * tick(void * arg){
     GAME *game = (GAME *)arg;
@@ -11,6 +12,7 @@ void * tick(void * arg){
 
         usleep(400000);
         generate_map(game);
+        // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);
         for (int i=0; i<game->number_of_players; i++){
             pthread_mutex_lock(&(game->players + i)->player_mutex);
@@ -28,42 +30,22 @@ void * tick(void * arg){
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
         pthread_mutex_unlock(&game->players_mutex);
+        // TODO CZY MUTEKS PONIZEJ GRY JEST POTRZEBNY?
         pthread_mutex_lock(&game->beasts_mutex);
         for (int i=0; i<game->number_of_beasts; i++){
             BEAST *beast = game->beasts + i;
-            pthread_mutex_lock(&beast->beast_mutex);
             beast->already_moved = false;
-            pthread_mutex_lock(&game->map_mutex);
-            // TODO przeniesc to ponizej do move_beast
-            game->map[beast->y_position][beast->x_position] = '*';
-            switch (beast->last_direction){
-                case LEFT:
-                    game->map[beast->y_position][beast->x_position + 1] = beast->last_encountered_object;
-                    break;
-                case RIGHT:
-                    game->map[beast->y_position][beast->x_position - 1] = beast->last_encountered_object;
-                    break;
-                case UP:
-                    game->map[beast->y_position - 1][beast->x_position] = beast->last_encountered_object;
-                    break;
-                case DOWN:
-                    game->map[beast->y_position + 1][beast->x_position] = beast->last_encountered_object;
-                    break;
-                case STAY:
-                    break;
-            }
-            pthread_mutex_unlock(&beast->beast_mutex);
-            pthread_mutex_unlock(&game->map_mutex);
         }
         pthread_mutex_unlock(&game->beasts_mutex);
         (game->rounds)++;
     }
 }
 
-/*void * beast_thread(void * arg) {
+void * beast_thread(void * arg) {
     GAME *game = (GAME *) arg;
     pthread_mutex_lock(&game->beasts_mutex);
     BEAST *beast = game->beasts + game->number_of_beasts;
+    (game->number_of_beasts)++;
     pthread_mutex_unlock(&game->beasts_mutex);
     // TODO MUTEKS?
     while (true) {
@@ -71,28 +53,22 @@ void * tick(void * arg){
             continue;
         }
         check_beast_vision(game, beast);
+        pthread_mutex_lock(&beast->beast_mutex);
+        unsigned int beast_x = beast->x_position, beast_y = beast->y_position;
+        pthread_mutex_unlock(&beast->beast_mutex);
         if (beast->seeing_player) {
-            //```
+            //
         }
         else {
             if (beast->coming_until_wall) {
-                move_beast(last_direction);
-                // TODO pamietac o fladze coming_until
+                move_beast(beast->last_direction, game, beast);
             }
             else {
-                int n = sprawdz_mozliwe_kierunki(beast_x, beast_y);
-                enum direction direct
-                        = losuj_mozliwy_kierunek(BEAST * beast, n, mozliwe
-                kierunki...)
-                (uwzglednij
-                kierunek
-                w
-                ktorym
-                szla
-                do tej
-                pory);
-                move_beast(direct);
+                int n;
+                enum DIRECTION* available_directions = check_available_directions(game, beast_x, beast_y, &n);
+                enum DIRECTION direct = rand_direction_for_beast_move(n, available_directions);
+                move_beast(direct, game, beast);
             }
         }
     }
-}*/
+}

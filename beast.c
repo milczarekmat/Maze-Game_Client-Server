@@ -7,12 +7,20 @@ int spawn_beast(GAME *game){
     BEAST *new_beasts = realloc(game->beasts, (game->number_of_beasts + 1) * sizeof(BEAST));
 
     if (!new_beasts){
-        return -1;
+        perror("Failed to allocate memory for beast struct");
+        free_game(&game);
+        exit(4);
     }
     game->beasts = new_beasts;
     BEAST* beast = game->beasts + game->number_of_beasts;
+    pthread_t* new_beasts_threads = realloc(game->beasts_threads, sizeof(pthread_t) * (game->number_of_beasts + 1));
+    if (!new_beasts_threads){
+        perror("Failed to allocate memory for beast threads");
+        free_game(&game);
+        exit(4);
+    }
+    game->beasts_threads = new_beasts_threads;
     pthread_mutex_unlock(&game->beasts_mutex);
-
     int x, y;
     srand(time(NULL));
     pthread_mutex_lock(&game->map_mutex);
@@ -29,19 +37,61 @@ int spawn_beast(GAME *game){
     beast->y_position = y;
     beast->x_to_player = 0;
     beast->y_to_player = 0;
-    beast->id = game->number_of_players + 1;
     beast->already_moved = false;
     beast->seeing_player = false;
     beast->coming_until_wall = false;
     beast->last_encountered_object = ' ';
 
     pthread_mutex_init(&beast->beast_mutex, NULL);
-    pthread_cond_init(&beast->move_wait, NULL);
 
-    // watek bestii
-    (game->number_of_beasts)++;
+    pthread_create(game->beasts_threads + game->number_of_beasts, NULL, &beast_thread, game);
     generate_map(game);
     return 0;
+}
+
+void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
+    int x = 0, y = 0;
+    switch (side) {
+        case LEFT:
+            offset_adaptation(LEFT, NULL, &x);
+            break;
+        case RIGHT:
+            offset_adaptation(RIGHT, NULL, &x);
+            break;
+        case UP:
+            offset_adaptation(UP, &y, NULL);
+            break;
+        case DOWN:
+            offset_adaptation(DOWN, &y, NULL);
+            break;
+        default:
+            x = 0;
+            y = 0;
+    }
+
+    pthread_mutex_lock(&game->map_mutex);
+    if (game->map[beast->y_position + y][beast->x_position + x] == 'a'){
+        pthread_mutex_unlock(&game->map_mutex);
+        //TODO MUTEKS BEAST?
+        beast->coming_until_wall = false;
+        return;
+    }
+    char object_to_save = game->map[beast->y_position + y][beast->x_position + x];
+    // TODO CO JESLI OBJECT JEST GRACZEM
+    // TODO MUTEKS BEAST?
+    game->map[beast->y_position + y][beast->x_position + x] = '*';
+    game->map[beast->y_position][beast->x_position] = beast->last_encountered_object;
+    pthread_mutex_unlock(&game->map_mutex);
+
+    pthread_mutex_lock(&beast->beast_mutex);
+    beast->already_moved = true;
+    beast->last_encountered_object = object_to_save;
+    beast->x_position += x;
+    beast->y_position += y;
+    beast->last_direction = side;
+    beast->coming_until_wall = true;
+    pthread_mutex_unlock(&beast->beast_mutex);
+    generate_map(game);
 }
 
 void check_beast_vision(GAME *game, BEAST *beast){
@@ -56,6 +106,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
     bool** walls = calloc(5, sizeof(bool *));
 
     if (!walls){
+        free_game(&game);
         perror("Failed to allocate memory for walls_tab");
         exit(3);
     }
@@ -68,6 +119,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 free(*(walls + j));
             }
             free(walls);
+            free_game(&game);
             perror("Failed to allocate memory for walls arr");
             exit(3);
         }
@@ -78,6 +130,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
     if (!beast_view){
         perror("Failed to allocate memory for beast_map arr");
         free(walls);
+        free_game(&game);
         exit(3);
     }
     for (int i=0; i<5; i++){
@@ -89,6 +142,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             }
             free(beast_view);
             free(walls);
+            free_game(&game);
             perror("Failed to allocate memory for beast_map arr");
             exit(3);
         }
@@ -215,25 +269,6 @@ void founded_player(BEAST* beast, int x, int y){
     pthread_mutex_unlock(&beast->beast_mutex);
 }
 
-void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x){
-    switch (direction){
-        case LEFT:
-            *offset_x -= 1;
-            break;
-        case RIGHT:
-            *offset_x += 1;
-            break;
-        case UP:
-            *offset_y -= 1;
-            break;
-        case DOWN:
-            *offset_y += 1;
-            break;
-        default:
-            break;
-    }
-}
-
 void check_fields_for_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
                                         unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction)
 {
@@ -283,4 +318,47 @@ void check_fields_for_player_occurrence(GAME *game, BEAST *beast, bool** walls, 
     else{
         walls[wall_y][wall_x] = false;
     }
+}
+
+enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned int y, int* n){
+    int counter = 1; //mozliwy stay
+    enum DIRECTION* avail_directs = calloc(1, sizeof(enum DIRECTION));
+    if (!avail_directs){
+        free_game(&game);
+        perror("Failed to allocate enums array");
+        exit(3);
+    }
+
+    pthread_mutex_lock(&game->map_mutex);
+    for (int direct=1; direct<=4; direct++){
+        int x_offset = x, y_offset = y;
+        offset_adaptation(direct, &y_offset, &x_offset);
+        if (game->map[y_offset][x_offset] != 'a'){
+            enum DIRECTION* new_avail_directs = realloc(avail_directs, sizeof(enum DIRECTION) * (counter + 1));
+            if (!new_avail_directs){
+                free_game(&game);
+                free(avail_directs);
+                perror("Failed to reallocate enums array");
+                exit(3);
+            }
+            avail_directs = new_avail_directs;
+            avail_directs[counter] = direct;
+            counter++;
+        }
+    }
+
+    pthread_mutex_unlock(&game->map_mutex);
+    *n = counter;
+    return avail_directs;
+}
+
+enum DIRECTION rand_direction_for_beast_move(int n, enum DIRECTION* avail){
+    int x = rand() % n;
+    enum DIRECTION direct = avail[x];
+    if (direct == STAY){
+        x = rand() % n;
+        direct = avail[x];
+    }
+    free(avail);
+    return direct;
 }

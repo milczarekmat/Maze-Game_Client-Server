@@ -37,8 +37,8 @@ int main() {
         switch (ch) {
             case 'q':
             case 'Q':
-                free_game(&game);
                 endwin();
+                free_game(&game);
                 return 0;
                 // TODO PRZEKAZYWANIE ODPOWIEDNIEGO GRACZA
             case KEY_UP:

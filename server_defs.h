@@ -32,9 +32,10 @@ enum ERROR{
 };
 
 struct game_t{
-    char **map;
-    struct player_t *players;
-    struct beast_t *beasts;
+    char** map;
+    struct player_t* players;
+    struct beast_t* beasts;
+    pthread_t* beasts_threads;
     unsigned int number_of_players;
     unsigned int number_of_beasts;
     unsigned int rounds;
@@ -65,7 +66,6 @@ struct player_t{
 };
 
 struct beast_t{
-    unsigned char id;
     bool already_moved;
     bool seeing_player;
     bool coming_until_wall;
@@ -76,7 +76,6 @@ struct beast_t{
     int y_to_player;
     enum DIRECTION last_direction;
     pthread_mutex_t beast_mutex;
-    pthread_cond_t move_wait;
 };
 
 typedef struct player_t PLAYER;
@@ -89,6 +88,7 @@ void generate_map(GAME *game);
 void show_players_info(GAME *game);
 int spawn_player(GAME *game);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
+void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
 
 void generate_element(enum TYPE type, GAME* game);
 void main_error(enum ERROR err);
