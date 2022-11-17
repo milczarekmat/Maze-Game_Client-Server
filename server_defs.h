@@ -2,8 +2,11 @@
 #define GRA_PROJEKT_SERVER_DEFS_H
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <time.h>
+#include <ncurses.h>
 
 #define HEIGHT 25
 #define WIDTH 45
@@ -85,21 +88,13 @@ char ** load_map(char *filename, int *err);
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
 int spawn_player(GAME *game);
-int spawn_beast(GAME *game);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
 
 void generate_element(enum TYPE type, GAME* game);
 void main_error(enum ERROR err);
 void free_map(char **map, int height);
 void free_game(GAME **game);
-
 bool check_if_border_x_exceeded(unsigned int x);
 bool check_if_border_y_exceeded(unsigned int y);
-
-void check_beast_vision(GAME *game, BEAST *beast);
-void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
-void founded_player(BEAST* beast, int x, int y);
-void check_fields_for_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
-                                        unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction);
 
 #endif

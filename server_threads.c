@@ -60,28 +60,39 @@ void * tick(void * arg){
     }
 }
 
-/*void * beast_thread(void * arg){
-    GAME* game = (GAME *)arg;
+/*void * beast_thread(void * arg) {
+    GAME *game = (GAME *) arg;
     pthread_mutex_lock(&game->beasts_mutex);
-    BEAST* beast = game->beasts + game->number_of_beasts;
+    BEAST *beast = game->beasts + game->number_of_beasts;
     pthread_mutex_unlock(&game->beasts_mutex);
     // TODO MUTEKS?
-    while (true){
-        //sprawdz_czy_widac_gracza(BEAST* beast);
-        if (beast->seeing_player){
+    while (true) {
+        if (beast->already_moved){
+            continue;
+        }
+        check_beast_vision(game, beast);
+        if (beast->seeing_player) {
             //```
         }
-        else{
-            if (beast->coming_until_wall){
+        else {
+            if (beast->coming_until_wall) {
                 move_beast(last_direction);
                 // TODO pamietac o fladze coming_until
             }
-            else{
+            else {
                 int n = sprawdz_mozliwe_kierunki(beast_x, beast_y);
                 enum direction direct
-                        = losuj_mozliwy_kierunek(BEAST* beast, n ,mozliwe kierunki...)
-                (uwzglednij kierunek w ktorym szla do tej pory);
+                        = losuj_mozliwy_kierunek(BEAST * beast, n, mozliwe
+                kierunki...)
+                (uwzglednij
+                kierunek
+                w
+                ktorym
+                szla
+                do tej
+                pory);
                 move_beast(direct);
             }
         }
-    }*/
+    }
+}*/
