@@ -93,15 +93,13 @@ void main_error(enum ERROR err);
 void free_map(char **map, int height);
 void free_game(GAME **game);
 
+bool check_if_border_x_exceeded(unsigned int x);
+bool check_if_border_y_exceeded(unsigned int y);
 
 void check_beast_vision(GAME *game, BEAST *beast);
-bool check_fields_for_player_occurrence(GAME* game, int x, int y);
-char check_field(char **map, int x, int y);
 void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
 void founded_player(BEAST* beast, int x, int y);
-void check_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
-                             unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction);
-//void beast_vision_step_2(GAME *game, BEAST *beast, bool** walls,
-     //                    int x, int y, int left_right, int up_down);
+void check_fields_for_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
+                                        unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction);
 
 #endif
