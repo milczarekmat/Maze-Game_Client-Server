@@ -22,7 +22,6 @@ int main() {
         free_game(&game);
         main_error(ALLOCATION);
     }
-
     generate_map(game);
     show_players_info(game);
     pthread_create(&game->tick_thread, NULL, &tick, game);

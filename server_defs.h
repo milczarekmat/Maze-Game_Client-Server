@@ -34,8 +34,10 @@ enum ERROR{
 struct game_t{
     char** map;
     struct player_t* players;
-    struct beast_t* beasts;
-    pthread_t* beasts_threads;
+    //struct beast_t* beasts;
+    //pthread_t* beasts_threads;
+    struct beast_t* beasts [4];
+    pthread_t beasts_threads[10];
     unsigned int number_of_players;
     unsigned int number_of_beasts;
     unsigned int rounds;

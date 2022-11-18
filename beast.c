@@ -4,7 +4,11 @@
 int spawn_beast(GAME *game){
     // TODO CZY POTTRZEBNY TU MUTEKS BESTII?
     pthread_mutex_lock(&game->beasts_mutex);
-    BEAST *new_beasts = realloc(game->beasts, (game->number_of_beasts + 1) * sizeof(BEAST));
+    game->beasts[game->number_of_beasts] = malloc(sizeof(BEAST));
+    BEAST *beast = game->beasts[game->number_of_beasts];
+
+//    pthread_mutex_lock(&(game->beasts + game->number_of_beasts)->beast_mutex);
+/*    BEAST *new_beasts = realloc(game->beasts, (game->number_of_beasts + 1) * sizeof(BEAST));
 
     if (!new_beasts){
         perror("Failed to allocate memory for beast struct");
@@ -19,8 +23,10 @@ int spawn_beast(GAME *game){
         free_game(&game);
         exit(4);
     }
-    game->beasts_threads = new_beasts_threads;
+    game->beasts_threads = new_beasts_threads;*/
+
     pthread_mutex_unlock(&game->beasts_mutex);
+//    pthread_mutex_lock(&(game->beasts + game->number_of_beasts)->beast_mutex);
     int x, y;
     srand(time(NULL));
     pthread_mutex_lock(&game->map_mutex);
@@ -44,7 +50,7 @@ int spawn_beast(GAME *game){
 
     pthread_mutex_init(&beast->beast_mutex, NULL);
 
-    pthread_create(game->beasts_threads + game->number_of_beasts, NULL, &beast_thread, game);
+    pthread_create(game->beasts_threads + game->number_of_beasts, NULL, beast_thread, game);
     generate_map(game);
     return 0;
 }

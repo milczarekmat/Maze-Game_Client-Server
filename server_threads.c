@@ -4,6 +4,7 @@
 void * tick(void * arg){
     GAME *game = (GAME *)arg;
     while (true){
+        // TODO PROBLEM PONIZEJ
         for (int i=0; i<game->number_of_players; i++){
             pthread_mutex_lock(&(game->players + i)->player_mutex);
             show_players_info(game);
@@ -33,8 +34,10 @@ void * tick(void * arg){
         // TODO CZY MUTEKS PONIZEJ GRY JEST POTRZEBNY?
         pthread_mutex_lock(&game->beasts_mutex);
         for (int i=0; i<game->number_of_beasts; i++){
-            BEAST *beast = game->beasts + i;
+            BEAST *beast = game->beasts[i];
+            pthread_mutex_lock(&beast->beast_mutex);
             beast->already_moved = false;
+            pthread_mutex_unlock(&beast->beast_mutex);
         }
         pthread_mutex_unlock(&game->beasts_mutex);
         (game->rounds)++;
@@ -44,20 +47,29 @@ void * tick(void * arg){
 void * beast_thread(void * arg) {
     GAME *game = (GAME *) arg;
     pthread_mutex_lock(&game->beasts_mutex);
-    BEAST *beast = game->beasts + game->number_of_beasts;
+    BEAST *beast = game->beasts[game->number_of_beasts];
     (game->number_of_beasts)++;
     pthread_mutex_unlock(&game->beasts_mutex);
     // TODO MUTEKS?
     while (true) {
+        //pthread_mutex_lock(&game->beasts_mutex);
+        pthread_mutex_lock(&beast->beast_mutex);
         if (beast->already_moved){
+            pthread_mutex_unlock(&beast->beast_mutex);
             continue;
         }
+        pthread_mutex_unlock(&beast->beast_mutex);
+
         check_beast_vision(game, beast);
         pthread_mutex_lock(&beast->beast_mutex);
         unsigned int beast_x = beast->x_position, beast_y = beast->y_position;
         pthread_mutex_unlock(&beast->beast_mutex);
         if (beast->seeing_player) {
-            //
+            pthread_mutex_lock(&game->map_mutex);
+            move(22, WIDTH + (10));
+            clrtoeol();
+            mvprintw(22, WIDTH + (10), "Seeing player: %d", beast->seeing_player);
+            pthread_mutex_unlock(&game->map_mutex);
         }
         else {
             if (beast->coming_until_wall) {
@@ -67,8 +79,22 @@ void * beast_thread(void * arg) {
                 int n;
                 enum DIRECTION* available_directions = check_available_directions(game, beast_x, beast_y, &n);
                 enum DIRECTION direct = rand_direction_for_beast_move(n, available_directions);
+                pthread_mutex_lock(&game->map_mutex);
+
+                move(22, WIDTH + (10));
+                clrtoeol();
+                mvprintw(22, WIDTH + (10), "Seeing player: %d", beast->seeing_player);
+
+                move(26, WIDTH + (10));
+                clrtoeol();
+                mvprintw(26, WIDTH + (10), "Next direction: %d", direct);
+                pthread_mutex_unlock(&game->map_mutex);
+
+                if (direct != STAY){
                 move_beast(direct, game, beast);
+                }
             }
         }
+        //pthread_mutex_unlock(&game->beasts_mutex);
     }
 }
