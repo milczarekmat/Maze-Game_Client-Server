@@ -11,7 +11,7 @@ void * tick(void * arg){
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
 
-        usleep(400000);
+        usleep(800000);
         generate_map(game);
         // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);

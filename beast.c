@@ -298,6 +298,12 @@ void check_beast_vision(GAME *game, BEAST *beast){
     }
     free(walls);
     free(beast_view);
+
+    pthread_mutex_lock(&beast->beast_mutex);
+    beast->seeing_player = false;
+    beast->x_to_player = 0;
+    beast->y_to_player = 0;
+    pthread_mutex_unlock(&beast->beast_mutex);
 }
 
 void founded_player(BEAST* beast, int x, int y){

@@ -155,10 +155,14 @@ char ** load_map(char *filename, int *err){
 void free_game(GAME **game){
     pthread_mutex_lock(&(*game)->beasts_mutex);
     // TODO
-/*    for (int i=0; i<(*game)->number_of_beasts; i++){
-        pthread_cancel(*((*game)->beasts_threads + i));
-    }*/
+    for (int i=0; i<(*game)->number_of_beasts; i++){
+        pthread_cancel(((*game)->beasts_threads[i]));
+    }
+    for (int i=0; i<(*game)->number_of_beasts; i++){
+        pthread_mutex_destroy(&((*game)->beasts[i])->beast_mutex);
+    }
     pthread_mutex_unlock(&(*game)->beasts_mutex);
+
     pthread_cancel((*game)->tick_thread);
 
     pthread_mutex_lock(&(*game)->map_mutex);
@@ -167,17 +171,12 @@ void free_game(GAME **game){
 
     pthread_mutex_lock(&(*game)->players_mutex);
     for (int i=0; i<(*game)->number_of_players; i++){
-        pthread_mutex_destroy(&((*game)->players + i)->player_mutex);
-        pthread_cond_destroy(&((*game)->players + i)->move_wait);
-        pthread_cond_destroy(&((*game)->players + i)->bush_wait);
+        pthread_mutex_destroy(&((*game)->players[i]).player_mutex);
+        pthread_cond_destroy(&((*game)->players[i]).move_wait);
+        pthread_cond_destroy(&((*game)->players[i]).bush_wait);
     }
     pthread_mutex_unlock(&(*game)->players_mutex);
-    pthread_mutex_lock(&(*game)->beasts_mutex);
-    // TODO
-/*    for (int i=0; i<(*game)->number_of_beasts; i++){
-        pthread_mutex_destroy(&((*game)->beasts + i)->beast_mutex);
-    }*/
-    pthread_mutex_unlock(&(*game)->beasts_mutex);
+
     pthread_mutex_destroy(&(*game)->map_mutex);
     pthread_mutex_destroy(&(*game)->players_mutex);
     pthread_mutex_destroy(&(*game)->beasts_mutex);
@@ -185,14 +184,13 @@ void free_game(GAME **game){
     if ((*game)->players){
         free((*game)->players);
     }
-    if ((*game)->beasts){
+/*    if ((*game)->beasts){
         free((*game)->beasts);
     }
     if ((*game)->beasts_threads){
         free((*game)->beasts_threads);
-    }
+    }*/
     free(*game);
-    printf("Done\n");
 }
 
 void free_map(char **map, int height){
