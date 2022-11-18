@@ -77,6 +77,7 @@ struct beast_t{
     int x_to_player;
     int y_to_player;
     enum DIRECTION last_direction;
+    enum DIRECTION opposite_direction;
     pthread_mutex_t beast_mutex;
     pthread_cond_t move_wait;
 };

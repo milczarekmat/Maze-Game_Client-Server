@@ -8,7 +8,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast);
 enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned int y, int* n);
 
 // TODO uwzglednij przeciwny kierunek w ktorym szla do tej pory w losowaniu
-enum DIRECTION rand_direction_for_beast_move(int n, enum DIRECTION* avail);
+enum DIRECTION rand_direction_for_beast_move(int n, enum DIRECTION* avail, enum DIRECTION opposite);
 void check_beast_vision(GAME *game, BEAST *beast);
 void founded_player(BEAST* beast, int x, int y);
 

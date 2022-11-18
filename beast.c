@@ -61,22 +61,33 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
     switch (side) {
         case LEFT:
             offset_adaptation(LEFT, NULL, &x);
+            beast->opposite_direction = RIGHT;
             break;
         case RIGHT:
             offset_adaptation(RIGHT, NULL, &x);
+            beast->opposite_direction = LEFT;
             break;
         case UP:
             offset_adaptation(UP, &y, NULL);
+            beast->opposite_direction = DOWN;
             break;
         case DOWN:
             offset_adaptation(DOWN, &y, NULL);
+            beast->opposite_direction = UP;
             break;
         default:
             x = 0;
             y = 0;
+            beast->opposite_direction = STAY;
     }
 
     pthread_mutex_lock(&game->map_mutex);
+
+    move(22, WIDTH + (10));
+    clrtoeol();
+    mvprintw(22, WIDTH + (10), "Opposite direct: %d", beast->opposite_direction);
+
+
     if (game->map[beast->y_position + y][beast->x_position + x] == 'a'){
         pthread_mutex_unlock(&game->map_mutex);
         //TODO MUTEKS BEAST?
@@ -87,7 +98,9 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
     // TODO CO JESLI OBJECT JEST GRACZEM
     // TODO MUTEKS BEAST?
     game->map[beast->y_position + y][beast->x_position + x] = '*';
-    game->map[beast->y_position][beast->x_position] = beast->last_encountered_object;
+    if (beast->last_encountered_object != '*'){
+        game->map[beast->y_position][beast->x_position] = beast->last_encountered_object;
+    }
     pthread_mutex_unlock(&game->map_mutex);
 
     pthread_mutex_lock(&beast->beast_mutex);
@@ -390,10 +403,11 @@ enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned
     return avail_directs;
 }
 
-enum DIRECTION rand_direction_for_beast_move(int n, enum DIRECTION* avail){
+enum DIRECTION rand_direction_for_beast_move(int n, enum DIRECTION* avail, enum DIRECTION opposite){
     int x = rand() % n;
     enum DIRECTION direct = avail[x];
-    if (direct == STAY){
+    unsigned int while_counter = 0;
+    while (direct == opposite && while_counter++ < 2){
         x = rand() % n;
         direct = avail[x];
     }
