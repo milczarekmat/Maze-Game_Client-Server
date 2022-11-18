@@ -166,32 +166,53 @@ void check_beast_vision(GAME *game, BEAST *beast){
     }
     pthread_mutex_unlock(&game->map_mutex);*/
 
-
-
     enum DIRECTION direct;
     // TODO OPISAC INSTRUKCJE Z PLIKIEM PNG
 
     pthread_mutex_lock(&game->map_mutex);
-    // poziom piaty przeszukiwan
-    for (direct=1; direct<=2; direct++) {
-        for (enum DIRECTION addit = 3; addit <= 4; addit++) {
-            int wall_x = 2, wall_y = 2, offset_y = 0, offset_x = 0;
-            offset_adaptation(direct, &wall_y, &wall_x);
-            offset_adaptation(addit, &wall_y, &wall_x);
-            offset_adaptation(direct, &offset_y, &offset_x);
-            offset_adaptation(addit, &offset_y, &offset_x);
-            if (walls[wall_y][wall_x]) {
-                continue;
-            }
-            check_fields_for_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 5, direct, addit);
-            // TODO ZASTANOWIC SIE CZY MUTEKSY BESTII SA TU POTRZEBNE
+    // poziom pierwszy przeszukiwan
+    for (direct=1; direct<=4; direct++){
+        check_fields_for_player_occurrence(game, beast, walls, x, y, 1, direct, STAY);
+        // TODO race conditions?
+        //TODO MUTEKS DLA BESTII!!! I PONIZEJ
+        pthread_mutex_lock(&beast->beast_mutex);
+        if (beast->seeing_player) {
+            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&beast->beast_mutex);
+            return;
+        }
+        pthread_mutex_unlock(&beast->beast_mutex);
+    }
+    // poziom drugi przeszukiwan
+    for (direct=1; direct<=2; direct++){
+        for (enum DIRECTION addit=3; addit<=4; addit++){
+            check_fields_for_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
+            // TODO race conditions?
             pthread_mutex_lock(&beast->beast_mutex);
-            if (beast->seeing_player){
-                beast->y_to_player += offset_y;
-                beast->x_to_player += offset_x;
+            if (beast->seeing_player) {
+                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&beast->beast_mutex);
+                return;
             }
             pthread_mutex_unlock(&beast->beast_mutex);
         }
+    }
+    // poziom trzeci przeszukiwan
+    for (direct=1; direct<=4; direct++) {
+        int wall_x = 2, wall_y = 2;
+        offset_adaptation(direct, &wall_y, &wall_x);
+        if (walls[wall_y][wall_x]){
+            continue; //sytuacja gdy, w pionie lub poziomie o jedno pole wystepuje sciana
+        }
+        check_fields_for_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
+        // TODO race conditions?
+        pthread_mutex_lock(&beast->beast_mutex);
+        if (beast->seeing_player) {
+            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&beast->beast_mutex);
+            return;
+        }
+        pthread_mutex_unlock(&beast->beast_mutex);
     }
     // poziom czwarty przeszukiwan
     for (direct=1; direct<=2; direct++) {
@@ -209,6 +230,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             int wall_x_addit = wall_x, wall_y_addit = wall_y;
             offset_adaptation(addit, &wall_y_addit, &wall_x_addit);
             offset_adaptation(direct, &wall_y, &wall_x);
+            // TODO MUTEKS REKURSYWNY beast
             pthread_mutex_lock(&beast->beast_mutex);
             if (beast->seeing_player){
                 if (walls[wall_y - offset_y][wall_x - offset_x]){
@@ -217,10 +239,14 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 if (!wall_flag){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
+                    pthread_mutex_unlock(&game->map_mutex);
+                    pthread_mutex_unlock(&beast->beast_mutex);
+                    return;
                 }
             }
-            pthread_mutex_unlock(&beast->beast_mutex);
+            beast->seeing_player = false;
             wall_flag = false;
+            pthread_mutex_unlock(&beast->beast_mutex);
             check_fields_for_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 4, addit, STAY);
             pthread_mutex_lock(&beast->beast_mutex);
             if (beast->seeing_player){
@@ -230,31 +256,38 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 if (!wall_flag){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
+                    pthread_mutex_unlock(&game->map_mutex);
+                    pthread_mutex_unlock(&beast->beast_mutex);
+                    return;
                 }
             }
+            beast->seeing_player = false;
+            //wall_flag = false;
             pthread_mutex_unlock(&beast->beast_mutex);
-            wall_flag = false;
         }
     }
-    // poziom trzeci przeszukiwan
-    for (direct=1; direct<=4; direct++) {
-        int wall_x = 2, wall_y = 2;
-        offset_adaptation(direct, &wall_y, &wall_x);
-        if (walls[wall_y][wall_x]){
-            //sytuacja gdy, w pionie lub poziomie o jedno pole wystepuje sciana
-            continue;
+    // poziom piaty przeszukiwan
+    for (direct=1; direct<=2; direct++) {
+        for (enum DIRECTION addit = 3; addit <= 4; addit++) {
+            int wall_x = 2, wall_y = 2, offset_y = 0, offset_x = 0;
+            offset_adaptation(direct, &wall_y, &wall_x);
+            offset_adaptation(addit, &wall_y, &wall_x);
+            offset_adaptation(direct, &offset_y, &offset_x);
+            offset_adaptation(addit, &offset_y, &offset_x);
+            if (walls[wall_y][wall_x]) {
+                continue;
+            }
+            check_fields_for_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 2, direct, addit);
+            pthread_mutex_lock(&beast->beast_mutex);
+            if (beast->seeing_player){
+                beast->y_to_player += offset_y;
+                beast->x_to_player += offset_x;
+                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&beast->beast_mutex);
+                return;
+            }
+            pthread_mutex_unlock(&beast->beast_mutex);
         }
-        check_fields_for_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
-    }
-    // poziom drugi przeszukiwan
-    for (direct=1; direct<=2; direct++){
-        for (enum DIRECTION addit=3; addit<=4; addit++){
-            check_fields_for_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
-        }
-    }
-    // poziom pierwszy przeszukiwan
-    for (direct=1; direct<=4; direct++){
-        check_fields_for_player_occurrence(game, beast, walls, x, y, 1, direct, STAY);
     }
     pthread_mutex_unlock(&game->map_mutex);
 
