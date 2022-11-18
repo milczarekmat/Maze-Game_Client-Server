@@ -36,7 +36,7 @@ struct game_t{
     struct player_t* players;
     //struct beast_t* beasts;
     //pthread_t* beasts_threads;
-    struct beast_t* beasts [4];
+    struct beast_t* beasts [10];
     pthread_t beasts_threads[10];
     unsigned int number_of_players;
     unsigned int number_of_beasts;
@@ -78,6 +78,7 @@ struct beast_t{
     int y_to_player;
     enum DIRECTION last_direction;
     pthread_mutex_t beast_mutex;
+    pthread_cond_t move_wait;
 };
 
 typedef struct player_t PLAYER;

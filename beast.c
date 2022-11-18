@@ -49,6 +49,7 @@ int spawn_beast(GAME *game){
     beast->last_encountered_object = ' ';
 
     pthread_mutex_init(&beast->beast_mutex, NULL);
+    pthread_cond_init(&beast->move_wait, NULL);
 
     pthread_create(game->beasts_threads + game->number_of_beasts, NULL, beast_thread, game);
     generate_map(game);
@@ -170,31 +171,29 @@ void check_beast_vision(GAME *game, BEAST *beast){
     // TODO OPISAC INSTRUKCJE Z PLIKIEM PNG
 
     pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&beast->beast_mutex);
     // poziom pierwszy przeszukiwan
     for (direct=1; direct<=4; direct++){
         check_fields_for_player_occurrence(game, beast, walls, x, y, 1, direct, STAY);
         // TODO race conditions?
         //TODO MUTEKS DLA BESTII!!! I PONIZEJ
-        pthread_mutex_lock(&beast->beast_mutex);
+
         if (beast->seeing_player) {
             pthread_mutex_unlock(&game->map_mutex);
             pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
-        pthread_mutex_unlock(&beast->beast_mutex);
     }
     // poziom drugi przeszukiwan
     for (direct=1; direct<=2; direct++){
         for (enum DIRECTION addit=3; addit<=4; addit++){
             check_fields_for_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
             // TODO race conditions?
-            pthread_mutex_lock(&beast->beast_mutex);
             if (beast->seeing_player) {
                 pthread_mutex_unlock(&game->map_mutex);
                 pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
-            pthread_mutex_unlock(&beast->beast_mutex);
         }
     }
     // poziom trzeci przeszukiwan
@@ -206,13 +205,11 @@ void check_beast_vision(GAME *game, BEAST *beast){
         }
         check_fields_for_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
         // TODO race conditions?
-        pthread_mutex_lock(&beast->beast_mutex);
         if (beast->seeing_player) {
             pthread_mutex_unlock(&game->map_mutex);
             pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
-        pthread_mutex_unlock(&beast->beast_mutex);
     }
     // poziom czwarty przeszukiwan
     for (direct=1; direct<=2; direct++) {
@@ -231,7 +228,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
             offset_adaptation(addit, &wall_y_addit, &wall_x_addit);
             offset_adaptation(direct, &wall_y, &wall_x);
             // TODO MUTEKS REKURSYWNY beast
-            pthread_mutex_lock(&beast->beast_mutex);
             if (beast->seeing_player){
                 if (walls[wall_y - offset_y][wall_x - offset_x]){
                     wall_flag = true;
@@ -246,9 +242,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             }
             beast->seeing_player = false;
             wall_flag = false;
-            pthread_mutex_unlock(&beast->beast_mutex);
             check_fields_for_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 4, addit, STAY);
-            pthread_mutex_lock(&beast->beast_mutex);
             if (beast->seeing_player){
                 if (walls[wall_y_addit - offset_y][wall_x_addit - offset_x]){
                     wall_flag = true;
@@ -263,7 +257,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
             }
             beast->seeing_player = false;
             //wall_flag = false;
-            pthread_mutex_unlock(&beast->beast_mutex);
         }
     }
     // poziom piaty przeszukiwan
@@ -278,7 +271,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 continue;
             }
             check_fields_for_player_occurrence(game, beast, walls, x + offset_x, y + offset_y, 2, direct, addit);
-            pthread_mutex_lock(&beast->beast_mutex);
             if (beast->seeing_player){
                 beast->y_to_player += offset_y;
                 beast->x_to_player += offset_x;
@@ -286,10 +278,11 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
-            pthread_mutex_unlock(&beast->beast_mutex);
+
         }
     }
     pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&beast->beast_mutex);
 
 
     for (int i=0; i<5; i++){
@@ -307,11 +300,11 @@ void check_beast_vision(GAME *game, BEAST *beast){
 }
 
 void founded_player(BEAST* beast, int x, int y){
-    pthread_mutex_lock(&beast->beast_mutex);
+    //pthread_mutex_lock(&beast->beast_mutex);
     beast->seeing_player = true;
     beast-> x_to_player = x;
     beast-> y_to_player = y;
-    pthread_mutex_unlock(&beast->beast_mutex);
+    //pthread_mutex_unlock(&beast->beast_mutex);
 }
 
 void check_fields_for_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
