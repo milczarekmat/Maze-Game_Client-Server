@@ -15,8 +15,8 @@ GAME * create_game(){
     game->number_of_players = 0;
     game->rounds = 1;
     game->players = NULL;
-    game->beasts = NULL;
-    game->beasts_threads = NULL;
+    //game->beasts = NULL;
+    //game->beasts_threads = NULL;
     pthread_mutex_init(&game->map_mutex, NULL);
     pthread_mutex_init(&game->players_mutex, NULL);
     pthread_mutex_init(&game->beasts_mutex, NULL);
@@ -154,9 +154,10 @@ char ** load_map(char *filename, int *err){
 
 void free_game(GAME **game){
     pthread_mutex_lock(&(*game)->beasts_mutex);
-    for (int i=0; i<(*game)->number_of_beasts; i++){
+    // TODO
+/*    for (int i=0; i<(*game)->number_of_beasts; i++){
         pthread_cancel(*((*game)->beasts_threads + i));
-    }
+    }*/
     pthread_mutex_unlock(&(*game)->beasts_mutex);
     pthread_cancel((*game)->tick_thread);
 
@@ -172,9 +173,10 @@ void free_game(GAME **game){
     }
     pthread_mutex_unlock(&(*game)->players_mutex);
     pthread_mutex_lock(&(*game)->beasts_mutex);
-    for (int i=0; i<(*game)->number_of_beasts; i++){
+    // TODO
+/*    for (int i=0; i<(*game)->number_of_beasts; i++){
         pthread_mutex_destroy(&((*game)->beasts + i)->beast_mutex);
-    }
+    }*/
     pthread_mutex_unlock(&(*game)->beasts_mutex);
     pthread_mutex_destroy(&(*game)->map_mutex);
     pthread_mutex_destroy(&(*game)->players_mutex);
@@ -330,6 +332,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
 
 void show_players_info(GAME *game){
     int size = 5;
+    pthread_mutex_lock(&game->map_mutex);
     for (int i = 0; i < game->number_of_players; i++){
         int j = i + 1;
         // TODO refaktoryzacja
@@ -359,6 +362,7 @@ void show_players_info(GAME *game){
     }
     move(0, 0);
     refresh();
+    pthread_mutex_unlock(&game->map_mutex);
 }
 
 void generate_element(enum TYPE type, GAME* game){
