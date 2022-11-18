@@ -5,7 +5,7 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO naprawic blad z watkami, ogarnac mutex w warunku (yt), jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
 int main() {
     GAME* game = create_game();
 

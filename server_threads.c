@@ -11,7 +11,7 @@ void * tick(void * arg){
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
 
-        usleep(400000);
+        usleep(1000000);
         generate_map(game);
         // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);
@@ -68,7 +68,7 @@ void * beast_thread(void * arg) {
         pthread_mutex_unlock(&beast->beast_mutex);
         if (beast->seeing_player) {
             pthread_mutex_lock(&game->map_mutex);
-            move(22, WIDTH + (10));
+            move(24, WIDTH + (10));
             clrtoeol();
             mvprintw(22, WIDTH + (10), "Seeing player: %d", beast->seeing_player);
             pthread_mutex_unlock(&game->map_mutex);
@@ -80,12 +80,12 @@ void * beast_thread(void * arg) {
             else {
                 int n;
                 enum DIRECTION* available_directions = check_available_directions(game, beast_x, beast_y, &n);
-                enum DIRECTION direct = rand_direction_for_beast_move(n, available_directions);
+                enum DIRECTION direct = rand_direction_for_beast_move(n, available_directions, beast->opposite_direction);
                 pthread_mutex_lock(&game->map_mutex);
 
-                move(22, WIDTH + (10));
-                clrtoeol();
-                mvprintw(22, WIDTH + (10), "Seeing player: %d", beast->seeing_player);
+                //move(22, WIDTH + (10));
+                //clrtoeol();
+                //mvprintw(22, WIDTH + (10), "Opposite direct: %d", beast->opposite_direction);
 
                 move(26, WIDTH + (10));
                 clrtoeol();
