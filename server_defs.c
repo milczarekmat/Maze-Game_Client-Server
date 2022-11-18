@@ -62,7 +62,7 @@ int spawn_player(GAME *game){
     player->already_moved = FALSE;
 
     pthread_mutex_init(&player->player_mutex, NULL);
-    pthread_cond_init(&player->move_wait, NULL);
+    //pthread_cond_init(&player->move_wait, NULL);
     pthread_cond_init(&player->bush_wait, NULL);
 
     // TODO DODAC MUTEKS PLAYERS?
@@ -160,6 +160,7 @@ void free_game(GAME **game){
     }
     for (int i=0; i<(*game)->number_of_beasts; i++){
         pthread_mutex_destroy(&((*game)->beasts[i])->beast_mutex);
+        pthread_cond_destroy(&((*game)->beasts[i])->move_wait);
     }
     pthread_mutex_unlock(&(*game)->beasts_mutex);
 
@@ -172,7 +173,7 @@ void free_game(GAME **game){
     pthread_mutex_lock(&(*game)->players_mutex);
     for (int i=0; i<(*game)->number_of_players; i++){
         pthread_mutex_destroy(&((*game)->players[i]).player_mutex);
-        pthread_cond_destroy(&((*game)->players[i]).move_wait);
+        //pthread_cond_destroy(&((*game)->players[i]).move_wait);
         pthread_cond_destroy(&((*game)->players[i]).bush_wait);
     }
     pthread_mutex_unlock(&(*game)->players_mutex);

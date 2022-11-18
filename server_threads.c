@@ -11,11 +11,12 @@ void * tick(void * arg){
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
 
-        usleep(800000);
+        usleep(400000);
         generate_map(game);
         // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);
         for (int i=0; i<game->number_of_players; i++){
+            // TODO wskaznik player do zrobienia
             pthread_mutex_lock(&(game->players + i)->player_mutex);
 //            if ((game->players + i)->in_bush){
 //                (game->players + i)->out_bush = true;
@@ -37,6 +38,7 @@ void * tick(void * arg){
             BEAST *beast = game->beasts[i];
             pthread_mutex_lock(&beast->beast_mutex);
             beast->already_moved = false;
+            pthread_cond_signal(&beast->move_wait);
             pthread_mutex_unlock(&beast->beast_mutex);
         }
         pthread_mutex_unlock(&game->beasts_mutex);
@@ -55,8 +57,8 @@ void * beast_thread(void * arg) {
         //pthread_mutex_lock(&game->beasts_mutex);
         pthread_mutex_lock(&beast->beast_mutex);
         if (beast->already_moved){
-            pthread_mutex_unlock(&beast->beast_mutex);
-            continue;
+            pthread_cond_wait(&beast->move_wait, &beast->beast_mutex);
+            //continue;
         }
         pthread_mutex_unlock(&beast->beast_mutex);
 
