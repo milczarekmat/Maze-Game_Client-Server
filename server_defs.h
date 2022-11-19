@@ -45,7 +45,6 @@ struct game_t{
     pthread_mutex_t map_mutex;
     pthread_mutex_t players_mutex;
     pthread_mutex_t beasts_mutex;
-    // TODO players mutex
 };
 
 struct player_t{
@@ -71,6 +70,7 @@ struct beast_t{
     bool already_moved;
     bool seeing_player;
     bool coming_until_wall;
+    bool available_kill;
     int x_position;
     int y_position;
     char last_encountered_object;
