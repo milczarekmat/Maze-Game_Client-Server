@@ -5,7 +5,7 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO sprobowac usunac muteks pojedynczej bestii, mijanie gracza z bestia, smierc w krzakach gracza, bestia stay condition, bestia na skrzyzowaniach, zdublowanie bestii, gonienie gracza, zabicie gracza, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
 int main() {
     GAME* game = create_game();
 
@@ -27,12 +27,11 @@ int main() {
     pthread_create(&game->tick_thread, NULL, &tick, game);
     keypad(stdscr, TRUE);
     cbreak();
+    nodelay(stdscr, TRUE);
     while(1){
+        pthread_mutex_lock(&(game->map_mutex));
         int ch = getch();
-/*        pthread_mutex_lock(&game->players->player_mutex);
-            if
-        pthread_mutex_unlock(&game->players->player_mutex);*/
-
+        pthread_mutex_unlock(&(game->map_mutex));
         switch (ch) {
             case 'q':
             case 'Q':

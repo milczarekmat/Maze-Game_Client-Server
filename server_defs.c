@@ -43,14 +43,15 @@ int spawn_player(GAME *game){
     }
     while(game->map[y][x] != ' ');
     // TODO zmienic na spawnowanie wg id
-    game->map[y][x] = '1';
+    // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
+    game->map[8][33] = '1';
     pthread_mutex_unlock(&game->map_mutex);
     // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
-    player->x_spawn = x;
-    player->x_position = x;
-    player->y_spawn = y;
-    player->y_position = y;
+    player->x_spawn = 33;
+    player->x_position = 33;
+    player->y_spawn = 8;
+    player->y_position = 8;
     player->id = game->number_of_players + 1;
     player->carried = 0;
     player->brought = 0;
@@ -84,6 +85,7 @@ void generate_map(GAME *game){
     init_pair(4, COLOR_WHITE, COLOR_RED); // kolor obozu
     init_pair(5, COLOR_BLACK, COLOR_YELLOW); // kolor skarbów
     init_pair(6, COLOR_RED, COLOR_WHITE); // kolor bestii
+    init_pair(7, COLOR_WHITE, COLOR_YELLOW); // kolor upuszczonych skarbów
     bkgd(COLOR_PAIR(3));
 
     for (int i=0; i<HEIGHT; i++){
@@ -99,6 +101,9 @@ void generate_map(GAME *game){
             }
             else if (game->map[i][j] == '*'){
                 mvaddch(i, j, game->map[i][j] | COLOR_PAIR(6));
+            }
+            else if (game->map[i][j] == 'D'){
+                mvaddch(i, j, game->map[i][j] | COLOR_PAIR(7));
             }
             else{
                 mvaddch(i, j, game->map[i][j] | A_ALTCHARSET | COLOR_PAIR(1));
@@ -154,7 +159,6 @@ char ** load_map(char *filename, int *err){
 
 void free_game(GAME **game){
     pthread_mutex_lock(&(*game)->beasts_mutex);
-    // TODO
     for (int i=0; i<(*game)->number_of_beasts; i++){
         pthread_cancel(((*game)->beasts_threads[i]));
     }
@@ -268,7 +272,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
         return;
     }
 
-    if (player_bush_status >= 1){
+    if (player_bush_status == 1){
         game->map[player_y][player_x] = '#';
     }
     else if (player_in_camp){
@@ -310,8 +314,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
             break;
     }
 
-    // TODO zmienic na id
-    game->map[player->y_position + y][player->x_position + x] = '1';
+    game->map[player->y_position + y][player->x_position + x] = player->id + 48;
     pthread_mutex_unlock(&game->map_mutex);
 
     pthread_mutex_lock(&player->player_mutex);
