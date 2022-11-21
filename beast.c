@@ -103,32 +103,40 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
     unsigned int dropped_treasure;
     bool flag = false;
     if (beast->available_kill) {
-        mvprintw(28, WIDTH + (10), "avail kill");
         //if (isdigit(game->map[beast->y_position + y][beast->x_position + x])) {
-            int offset_x = 0, offset_y = 0 ;
             pthread_mutex_lock(&game->players_mutex);
             for (enum DIRECTION direct = 1; direct<=4; direct++) {
+                int offset_x = 0, offset_y = 0 ;
                 offset_adaptation(direct, &offset_y, &offset_x);
                 for (int i = 0; i < game->number_of_players; i++) {
                     PLAYER *player = game->players + i;
                     if (player->id + 48 ==
                     game->map[beast->y_position + offset_y][beast->x_position + offset_x]) {
                         //if (player->already_moved == false){
-                            dropped_treasure = kill_player(game, player, beast);
+                            dropped_treasure = kill_player(game, player);
                             //x = offset_x;
                             //y = offset_y;
+                            pthread_mutex_lock(&player->player_mutex);
                             if (dropped_treasure > 0) {
                                 object_to_save = 'D';
+                                if (player->in_bush){
+                                    add_dropped_treasure(game, '#', player->carried, player->x_position, player->y_position);
+                                }
+                                else{
+                                    add_dropped_treasure(game, ' ', player->carried, player->x_position, player->y_position);
+                                }
                             } else {
                                 object_to_save = ' ';
+                                if (player->in_bush == true){
+                                    object_to_save = '#';
+                                }
                             }
+                            pthread_mutex_unlock(&player->player_mutex);
                         //}
                         // TODO USUNAC FLAGE
                         flag = true;
                         break;
                     }
-                    offset_x = 0;
-                    offset_y = 0;
                 }
                 if (flag){
                     break;
@@ -247,7 +255,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             //move(22, WIDTH + (10));
             //clrtoeol();
             //mvprintw(22, WIDTH + (10), "Founded kill %d", beast->available_kill);
-            pthread_mutex_unlock(&game->map_mutex);
+            //pthread_mutex_unlock(&game->map_mutex);
             //beast->available_kill = true;
             pthread_mutex_unlock(&game->map_mutex);
             pthread_mutex_unlock(&beast->beast_mutex);
@@ -566,9 +574,13 @@ enum DIRECTION check_if_chase_available(GAME *game, BEAST *beast, unsigned int x
     }
 }
 
-unsigned int kill_player(GAME *game, PLAYER *player, BEAST *beast){
-    mvprintw(26, WIDTH + (10), "Killed");
+unsigned int kill_player(GAME *game, PLAYER *player){
+    //mvprintw(26, WIDTH + (10), "Killed");
     pthread_mutex_lock(&player->player_mutex);
+/*    bool in_bush_flag = false;
+    if (player->bush_status >= 1){
+        in_bush_flag = true;
+    }*/
     unsigned int carried = player->carried;
     player->carried = 0;
     player->x_position = player->x_spawn;
@@ -577,12 +589,18 @@ unsigned int kill_player(GAME *game, PLAYER *player, BEAST *beast){
     player->in_camp = false;
     player->already_moved = false;
     player->deaths++;
+    game->map[player->y_spawn][player->x_spawn] = player->id + 48;
+/*    if (in_bush_flag){
+        // TODO ogarnac jak dzialaja sygnaly z yt
+        pthread_cond_signal(&player->bush_wait);
+    }
+
+    */
     pthread_mutex_unlock(&player->player_mutex);
 
     //pthread_mutex_lock(&game->map_mutex);
     // TODO czekanie az miejsce respawnu bedzie puste
     // TODO MAP MUTEKS REKURSYWNY
-    game->map[player->y_spawn][player->x_spawn] = player->id + 48;
     //pthread_mutex_unlock(&game->map_mutex);
     // TODO czy konieczne?
     //check_beast_vision(game, beast);
