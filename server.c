@@ -5,7 +5,7 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO sprobowac usunac muteks pojedynczej bestii, mijanie gracza z bestia, smierc w krzakach gracza, bestia stay condition, bestia na skrzyzowaniach, zdublowanie bestii, gonienie gracza, zabicie gracza, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO flaga active dla dropped treasure, zwalnianie dropped treasures, char_wait cond, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), mijanie gracza z bestia, smierc w krzakach gracza, bestia stay condition, bestia na skrzyzowaniach, zdublowanie bestii, gonienie gracza, zabicie gracza, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
 int main() {
     GAME* game = create_game();
 
@@ -27,11 +27,16 @@ int main() {
     pthread_create(&game->tick_thread, NULL, &tick, game);
     keypad(stdscr, TRUE);
     cbreak();
-    nodelay(stdscr, TRUE);
     while(1){
-        pthread_mutex_lock(&(game->map_mutex));
+        //pthread_mutex_lock(&(game->map_mutex));
+        //nodelay(stdscr, TRUE);
         int ch = getch();
-        pthread_mutex_unlock(&(game->map_mutex));
+        if (ch == ERR){
+            move(20, WIDTH + (10));
+            clrtoeol();
+            mvprintw(20, WIDTH + (10), "ERR");
+        }
+        //pthread_mutex_unlock(&(game->map_mutex));
         switch (ch) {
             case 'q':
             case 'Q':
@@ -65,5 +70,6 @@ int main() {
                 spawn_beast(game);
                 break;
         }
+        //generate_map(game);
     }
 }

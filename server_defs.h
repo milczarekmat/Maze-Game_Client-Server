@@ -37,20 +37,24 @@ struct game_t{
     //struct beast_t* beasts;
     //pthread_t* beasts_threads;
     struct beast_t* beasts [10];
+    struct dropped_treasure_t** dropped_treasures;
     pthread_t beasts_threads[10];
     unsigned int number_of_players;
     unsigned int number_of_beasts;
     unsigned int rounds;
+    unsigned int number_of_dropped_treasures;
     pthread_t tick_thread;
     pthread_mutex_t map_mutex;
     pthread_mutex_t players_mutex;
     pthread_mutex_t beasts_mutex;
+    pthread_mutex_t treasures_mutex;
+    pthread_cond_t char_wait;
 };
 
 struct player_t{
     unsigned char id;
     bool already_moved;
-//    bool in_bush;
+    bool in_bush;
 //    bool out_bush;
     bool in_camp;
     unsigned short bush_status;
@@ -62,7 +66,6 @@ struct player_t{
     int x_position;
     int y_position;
     pthread_mutex_t player_mutex;
-    pthread_cond_t move_wait;
     pthread_cond_t bush_wait;
 };
 
@@ -82,9 +85,18 @@ struct beast_t{
     pthread_cond_t move_wait;
 };
 
+struct dropped_treasure_t{
+    unsigned int value;
+    unsigned int x;
+    unsigned int y;
+    char last_object;
+    pthread_mutex_t treasure_mutex;
+};
+
 typedef struct player_t PLAYER;
 typedef struct beast_t BEAST;
 typedef struct game_t GAME;
+typedef struct dropped_treasure_t DROPPED_TREASURE;
 
 GAME * create_game();
 char ** load_map(char *filename, int *err);
@@ -100,5 +112,10 @@ void free_map(char **map, int height);
 void free_game(GAME **game);
 bool check_if_border_x_exceeded(unsigned int x);
 bool check_if_border_y_exceeded(unsigned int y);
+
+unsigned int kill_player(GAME* game, PLAYER* player);
+void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,
+                          unsigned int x, unsigned int y);
+char get_dropped_treasure(GAME* game, PLAYER* player);
 
 #endif

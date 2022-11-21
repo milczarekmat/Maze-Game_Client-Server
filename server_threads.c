@@ -11,7 +11,7 @@ void * tick(void * arg){
             pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
 
-        usleep(1000000);
+        usleep(400000);
         generate_map(game);
         // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);
@@ -25,13 +25,14 @@ void * tick(void * arg){
                 (game->players + i)->bush_status -= 1;
             }
             (game->players + i)->already_moved = false;
-            if ((game->players + i)->bush_status == 1){
+/*            if ((game->players + i)->bush_status == 1){
                 pthread_cond_signal(&(game->players + i)->move_wait);
-            }
+            }*/
+            // TODO BYLA ZMIANA KOLEJNOSCI UNLOCK I SIGNAL
+            pthread_mutex_unlock(&(game->players + i)->player_mutex);
             if ((game->players + i)->bush_status == 1){
                 pthread_cond_signal(&(game->players + i)->bush_wait);
             }
-            pthread_mutex_unlock(&(game->players + i)->player_mutex);
         }
         pthread_mutex_unlock(&game->players_mutex);
         // TODO CZY MUTEKS PONIZEJ GRY JEST POTRZEBNY?
@@ -40,8 +41,9 @@ void * tick(void * arg){
             BEAST *beast = game->beasts[i];
             pthread_mutex_lock(&beast->beast_mutex);
             beast->already_moved = false;
-            pthread_cond_signal(&beast->move_wait);
+            // TODO BYLA ZMIANA KOLEJNOSCI 2 LINIJEK PONIZE
             pthread_mutex_unlock(&beast->beast_mutex);
+            pthread_cond_signal(&beast->move_wait);
         }
         pthread_mutex_unlock(&game->beasts_mutex);
         (game->rounds)++;
@@ -79,18 +81,18 @@ void * beast_thread(void * arg) {
         if (beast->seeing_player) {
             enum DIRECTION direct = check_if_chase_available(game, beast, beast_x, beast_y, x_to_player, y_to_player);
             pthread_mutex_lock(&game->map_mutex);
-            move(20, WIDTH + (10));
+/*            move(20, WIDTH + (10));
             clrtoeol();
             move(22, WIDTH + (10));
             clrtoeol();
             mvprintw(20, WIDTH + (10), "x_to_player: %d", beast->x_to_player);
-            mvprintw(22, WIDTH + (10), "y_to_player: %d", beast->y_to_player);
+            mvprintw(22, WIDTH + (10), "y_to_player: %d", beast->y_to_player);*/
             pthread_mutex_unlock(&game->map_mutex);
             // TODO POPRAWIC
             if ((abs(beast->x_to_player) <= 1 && abs(beast->y_to_player) == 0) ||
             (abs(beast->y_to_player) <= 1 && abs(beast->x_to_player) == 0)){
 
-                mvprintw(24, WIDTH + (10), "Done flag avail");
+                //mvprintw(24, WIDTH + (10), "Done flag avail");
                 beast->available_kill = true;
             }
             move_beast(direct, game, beast);
@@ -139,3 +141,15 @@ void * beast_thread(void * arg) {
         }
     }
 }
+/*
+
+void * getch_thread(void * arg){
+    GAME *game = (GAME *) arg;
+
+    while (true){
+        nodelay(stdscr, FALSE);
+        int ch = getch();
+        pthread_cond_signal()
+    }
+}
+*/
