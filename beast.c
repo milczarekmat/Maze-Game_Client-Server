@@ -112,6 +112,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
                     PLAYER *player = game->players + i;
                     if (player->id + 48 ==
                     game->map[beast->y_position + offset_y][beast->x_position + offset_x]) {
+							int kill_place_x = player->x_position, kill_place_y = player->y_position;
                         //if (player->already_moved == false){
                             dropped_treasure = kill_player(game, player);
                             //x = offset_x;
@@ -120,10 +121,10 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
                             if (dropped_treasure > 0) {
                                 object_to_save = 'D';
                                 if (player->in_bush){
-                                    add_dropped_treasure(game, '#', player->carried, player->x_position, player->y_position);
+                                    add_dropped_treasure(game, '#', dropped_treasure, kill_place_x, kill_place_y);
                                 }
                                 else{
-                                    add_dropped_treasure(game, ' ', player->carried, player->x_position, player->y_position);
+                                    add_dropped_treasure(game, ' ', dropped_treasure, kill_place_x, kill_place_y);
                                 }
                             } else {
                                 object_to_save = ' ';

@@ -65,6 +65,7 @@ int spawn_player(GAME *game){
     player->bush_status = 0;
     player->in_camp = false;
     player->already_moved = false;
+    player->object_to_save = 0;
 
     pthread_mutex_init(&player->player_mutex, NULL);
     //pthread_cond_init(&player->move_wait, NULL);
@@ -249,10 +250,10 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
         pthread_cond_wait(&player->bush_wait, &player->player_mutex);
     }
 
-    int player_x = player->x_position, player_y = player->y_position;
-    bool player_in_camp = player->in_camp, player_in_bush = player->in_bush;
-    unsigned int player_bush_status = player->bush_status, player_brought = player->brought, player_carried = player->carried;
-    pthread_mutex_unlock(&player->player_mutex);
+    //int player_x = player->x_position, player_y = player->y_position;
+    //bool player_in_camp = player->in_camp, player_in_bush = player->in_bush;
+    //unsigned int player_bush_status = player->bush_status, player_brought = player->brought, player_carried = player->carried;
+    //pthread_mutex_unlock(&player->player_mutex);
 
 
     // TODO zmienic poruszanie wg id
@@ -277,87 +278,91 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
 
     // TODO sprawdzic ponizej race conidtions
     pthread_mutex_lock(&game->map_mutex);
-    if (game->map[player_y + y][player_x + x] == 'a'){
+    if (game->map[player->y_position + y][player->x_position + x] == 'a'){
         pthread_mutex_unlock(&game->map_mutex);
+        pthread_mutex_unlock(&player->player_mutex);
         return;
     }
 
-    char object_to_save;
-    if (player_bush_status == 1){
-        //TODO czy potrzebne to nizej
-        if (player->deaths == ++deaths){
-            pthread_mutex_unlock(&player->player_mutex);
-            pthread_mutex_unlock(&game->map_mutex);
-            return;
+    if (player->object_to_save){
+        game->map[player->y_position][player->x_position] = player->object_to_save;
+        player->object_to_save = 0;
+    }
+    else {
+        if (player->bush_status == 1) {
+/*            //TODO czy potrzebne to nizej
+            if (player->deaths == ++deaths) {
+                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&player->player_mutex);
+                return;
+            }*/
+            game->map[player->y_position][player->x_position] = '#';
+            //object_to_save = '#';
+        } else if (player->in_camp) {
+            game->map[player->y_position][player->x_position] = 'A';
+            //object_to_save = 'A';
+        } else {
+            game->map[player->y_position][player->x_position] = ' ';
+            //object_to_save = ' ';
         }
-        //game->map[player_y][player_x] = '#';
-        object_to_save = '#';
-    }
-    else if (player_in_camp){
-        //game->map[player_y][player_x] = 'A';
-        object_to_save = 'A';
-    }
-    else{
-        //game->map[player_y][player_x] = ' ';
-        object_to_save = ' ';
     }
 
-    switch (game->map[player_y + y][player_x + x]){
+    switch (game->map[player->y_position + y][player->x_position + x]){
 
         case ' ':
 //            player->in_bush = FALSE;
 //            player->in_camp = FALSE;
-            player_in_camp = false;
-            player_in_bush = false;
-            player_bush_status = 0;
+            player->in_camp = false;
+            player->in_bush = false;
+            player->bush_status = 0;
             break;
         case '#':
 //            player->in_bush = TRUE;
 //            player->out_bush = FALSE;
-            player_in_camp = false;
-            player_in_bush = true;
-            player_bush_status = 3;
+            player->in_camp = false;
+            player->in_bush = true;
+            player->bush_status = 3;
             break;
         case 'A':
 //            player->in_bush = FALSE;
 //            player->in_camp = TRUE;
-            player_in_camp = true;
-            player_bush_status = 0;
-            player_in_bush = false;
-            player_brought += player_carried;
-            player_carried = 0;
+            player->in_camp = true;
+            player->bush_status = 0;
+            player->in_bush = false;
+            player->brought += player->carried;
+            player->carried = 0;
             break;
         case 'c':
-            player_carried += 1;
+            player->carried += 1;
             break;
         case 't':
-            player_carried += 10;
+            player->carried += 10;
             break;
         case 'T':
-            player_carried += 50;
+            player->carried += 50;
             break;
         case '*':
-            kill_player(game, player);
             pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&player->player_mutex);
+            kill_player(game, player);
             return;
         case 'D':
-            object_to_save = get_dropped_treasure(game, player);
+            player->object_to_save = get_dropped_treasure(game, player, player->x_position + x, player->y_position + y);
             break;
     }
-    game->map[player_y][player_x] = object_to_save;
+    //game->map[player->y_position][player->x_position] = object_to_save;
 
     game->map[player->y_position + y][player->x_position + x] = player->id + 48;
     pthread_mutex_unlock(&game->map_mutex);
 
-    pthread_mutex_lock(&player->player_mutex);
     player->already_moved = true;
     player->y_position += y;
     player->x_position += x;
-    player->bush_status = player_bush_status;
+/*    player->bush_status = player_bush_status;
     player->in_bush = player_in_bush;
     player->in_camp = player_in_camp;
     player->carried = player_carried;
-    player->brought = player_brought;
+    player->brought = player_brought;*/
     show_players_info(game);
     pthread_mutex_unlock(&player->player_mutex);
 
@@ -464,9 +469,9 @@ void add_dropped_treasure(GAME *game, char object_to_save, unsigned int carried_
     //mvprintw(22, WIDTH + (10), "DONE");
 
     if (dropped_treas){
-        pthread_mutex_lock(&dropped_treas->treasure_mutex);
+        //pthread_mutex_lock(&dropped_treas->treasure_mutex);
         dropped_treas->value += carried_by_player;
-        pthread_mutex_unlock(&dropped_treas->treasure_mutex);
+        //pthread_mutex_unlock(&dropped_treas->treasure_mutex);
     }
     else{
         // TODO MUTEKS
@@ -481,43 +486,55 @@ void add_dropped_treasure(GAME *game, char object_to_save, unsigned int carried_
             exit(4);
         }
         game->dropped_treasures = new_treasures;
-        DROPPED_TREASURE * new_treasure = game->dropped_treasures[game->number_of_dropped_treasures++];
-        pthread_mutex_unlock(&game->treasures_mutex);
-        new_treasure = malloc(sizeof(DROPPED_TREASURE));
+		pthread_mutex_unlock(&game->treasures_mutex);
+        
+        game->dropped_treasures[game->number_of_dropped_treasures] = malloc(sizeof(DROPPED_TREASURE));
+        /*DROPPED_TREASURE * new_treasure = game->dropped_treasures[game->number_of_dropped_treasures];
         if (!new_treasure){
             endwin();
             free_game(&game);
             perror("Failed to allocate memory for dropped_treasure");
             exit(4);
-        }
-        new_treasure->value = carried_by_player;
-        new_treasure->x = x;
-        new_treasure->y = y;
-        new_treasure->last_object = object_to_save;
-        pthread_mutex_init(&new_treasure->treasure_mutex, NULL);
+        }*/
+       
+       
+        game->dropped_treasures[game->number_of_dropped_treasures]->value = carried_by_player;
+        game->dropped_treasures[game->number_of_dropped_treasures]->x = x;
+        game->dropped_treasures[game->number_of_dropped_treasures]->y = y;
+        game->dropped_treasures[game->number_of_dropped_treasures]->last_object = object_to_save;
+        pthread_mutex_init(&game->dropped_treasures[game->number_of_dropped_treasures]->treasure_mutex, NULL);
+        mvprintw(20, WIDTH + (12), "value struct 1: %d", game->dropped_treasures[game->number_of_dropped_treasures]->value);
+        game->number_of_dropped_treasures++;
     }
 }
 
-char get_dropped_treasure(GAME* game, PLAYER* player){
+char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsigned int player_y){
     DROPPED_TREASURE *dropped_treas = NULL;
     pthread_mutex_lock(&game->treasures_mutex);
     for (unsigned int i=0; i<game->number_of_dropped_treasures; i++){
         DROPPED_TREASURE* temp = game->dropped_treasures[i];
-        if (temp->x == player->x_position && temp->y == player->y_position){
+        if (temp->x == player_x && temp->y == player_y ){
             dropped_treas = temp;
             break;
         }
     }
-    pthread_mutex_unlock(&game->treasures_mutex);
-
+    //if (!dropped_treas){
+		    //endwin();
+            //free_game(&game);
+            //printf("NULL\n");
+            //exit(4);
+	//}
+	pthread_mutex_unlock(&game->treasures_mutex);
+	
+	
     char object_to_save;
     // TODO czy potrzebny tu muteks player i treas?
-    pthread_mutex_lock(&player->player_mutex);
+    //pthread_mutex_lock(&player->player_mutex);
     pthread_mutex_lock(&dropped_treas->treasure_mutex);
     player->carried += dropped_treas->value;
     // TODO dezaktywacja flagi
     object_to_save = dropped_treas->last_object;
-    pthread_mutex_unlock(&player->player_mutex);
+    //pthread_mutex_unlock(&player->player_mutex);
     pthread_mutex_unlock(&dropped_treas->treasure_mutex);
     return object_to_save;
 }
