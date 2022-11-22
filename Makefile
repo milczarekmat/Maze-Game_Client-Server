@@ -8,7 +8,7 @@ sources = server.c server_defs.c server_threads.c beast.c
 executable = server
 
 $(executable): $(headers) $(sources)
-	gcc -g -Wall -pthread -lncurses -pedantic $(sources) -o $(executable)
+	gcc -g -Wall -pthread -pedantic $(sources) -o $(executable) -lncurses
 
 .PHONY: clean
 clean:

@@ -55,7 +55,6 @@ struct player_t{
     unsigned char id;
     bool already_moved;
     bool in_bush;
-//    bool out_bush;
     bool in_camp;
     unsigned short bush_status;
     int x_spawn;
@@ -65,6 +64,7 @@ struct player_t{
     unsigned int deaths;
     int x_position;
     int y_position;
+    char object_to_save;
     pthread_mutex_t player_mutex;
     pthread_cond_t bush_wait;
 };
@@ -116,6 +116,6 @@ bool check_if_border_y_exceeded(unsigned int y);
 unsigned int kill_player(GAME* game, PLAYER* player);
 void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,
                           unsigned int x, unsigned int y);
-char get_dropped_treasure(GAME* game, PLAYER* player);
+char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsigned int player_y);
 
 #endif
