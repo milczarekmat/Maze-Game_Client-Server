@@ -29,7 +29,7 @@ int spawn_beast(GAME *game){
 //    pthread_mutex_lock(&(game->beasts + game->number_of_beasts)->beast_mutex);
     int x, y;
     srand(time(NULL));
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
@@ -38,7 +38,7 @@ int spawn_beast(GAME *game){
     // TODO zmienic na mozliwosc respienia w krzakach?
     // TODO ZMIENIC Z POWROTEM NA X I Y
     game->map[8][33] = '*';
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
 
     // TODO ZMIENIC Z POWROTEM NA X I Y
 /*    beast->x_position = x;
@@ -85,7 +85,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
             return;
     }
 
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
 
 /*    move(22, WIDTH + (10));
     clrtoeol();
@@ -93,7 +93,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
 
 
     if (game->map[beast->y_position + y][beast->x_position + x] == 'a'){
-        pthread_mutex_unlock(&game->map_mutex);
+        pthread_mutex_unlock(&game->main_mutex);
         //TODO MUTEKS BEAST?
         beast->coming_until_wall = false;
         return;
@@ -162,7 +162,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
     if (beast->last_encountered_object != '*'){
         game->map[beast->y_position][beast->x_position] = beast->last_encountered_object;
     }
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
 
     pthread_mutex_lock(&beast->beast_mutex);
     beast->already_moved = true;
@@ -245,7 +245,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
     enum DIRECTION direct;
     // TODO OPISAC INSTRUKCJE Z PLIKIEM PNG, REFAKTORYZACJA
 
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     pthread_mutex_lock(&beast->beast_mutex);
     // poziom pierwszy przeszukiwan
     for (direct=1; direct<=4; direct++){
@@ -258,7 +258,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             //mvprintw(22, WIDTH + (10), "Founded kill %d", beast->available_kill);
             //pthread_mutex_unlock(&game->map_mutex);
             //beast->available_kill = true;
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
@@ -268,7 +268,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
         for (enum DIRECTION addit=3; addit<=4; addit++){
             check_fields_for_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
             if (beast->seeing_player) {
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
@@ -283,7 +283,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
         }
         check_fields_for_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
         if (beast->seeing_player) {
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
@@ -311,7 +311,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 if (!wall_flag){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
-                    pthread_mutex_unlock(&game->map_mutex);
+                    pthread_mutex_unlock(&game->main_mutex);
                     pthread_mutex_unlock(&beast->beast_mutex);
                     return;
                 }
@@ -326,7 +326,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 if (!wall_flag){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
-                    pthread_mutex_unlock(&game->map_mutex);
+                    pthread_mutex_unlock(&game->main_mutex);
                     pthread_mutex_unlock(&beast->beast_mutex);
                     return;
                 }
@@ -350,14 +350,14 @@ void check_beast_vision(GAME *game, BEAST *beast){
             if (beast->seeing_player){
                 beast->y_to_player += offset_y;
                 beast->x_to_player += offset_x;
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
 
         }
     }
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
     pthread_mutex_unlock(&beast->beast_mutex);
 
 
@@ -445,7 +445,7 @@ enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned
 
     // TODO A MOZE MUTEKS BEASTS BY TU POMOGL IDK?
 
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     for (int direct=1; direct<=4; direct++){
         int x_offset = x, y_offset = y;
         offset_adaptation(direct, &y_offset, &x_offset);
@@ -463,7 +463,7 @@ enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned
         }
     }
 
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
     *n = counter;
     return avail_directs;
 }
@@ -504,71 +504,71 @@ enum DIRECTION check_if_chase_available(GAME *game, BEAST *beast, unsigned int x
     }
 
     if (abs(x_to_player) > abs(y_to_player)){
-        pthread_mutex_lock(&game->map_mutex);
+        pthread_mutex_lock(&game->main_mutex);
         if (game->map[y][x + offset_x] != 'a'){
             //move(22, WIDTH + (10));
             //clrtoeol();
 //            mvprintw(22, WIDTH + (10), "Done");
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             //beast->x_to_player -= offset_x;
             return direct_x;
         }
         else{
             if (game->map[y + offset_y][x] != 'a'){
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 //beast->y_to_player -= offset_y;
                 return direct_y;
             }
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             return STAY;
         }
     }
     else if (abs(y_to_player) > abs(x_to_player)){
-        pthread_mutex_lock(&game->map_mutex);
+        pthread_mutex_lock(&game->main_mutex);
         if (game->map[y + offset_y][x] != 'a'){
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             //beast->y_to_player -= offset_y;
             return direct_y;
         }
         else{
             if (game->map[y][x + offset_x] != 'a'){
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 //beast->x_to_player -= offset_x;
                 return direct_x;
             }
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             return STAY;
         }
     }
     else{
         srand(time(NULL));
         if (rand() % 2){ //najpierw x
-            pthread_mutex_lock(&game->map_mutex);
+            pthread_mutex_lock(&game->main_mutex);
             if (game->map[y][x + offset_x] != 'a'){
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 return direct_x;
             }
             else{
                 if (game->map[y + offset_y][x] != 'a') {
-                    pthread_mutex_unlock(&game->map_mutex);
+                    pthread_mutex_unlock(&game->main_mutex);
                     return direct_y;
                 }
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 return STAY;
             }
         }
         else{ //najpierw y
-            pthread_mutex_lock(&game->map_mutex);
+            pthread_mutex_lock(&game->main_mutex);
             if (game->map[y + offset_y][x] != 'a'){
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 return direct_y;
             }
             else{
                 if (game->map[y][x + offset_x] != 'a'){
-                    pthread_mutex_unlock(&game->map_mutex);
+                    pthread_mutex_unlock(&game->main_mutex);
                     return direct_x;
                 }
-                pthread_mutex_unlock(&game->map_mutex);
+                pthread_mutex_unlock(&game->main_mutex);
                 return STAY;
             }
         }

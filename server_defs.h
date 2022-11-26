@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <ncurses.h>
+#include "server_threads.h"
 
 #define HEIGHT 25
 #define WIDTH 45
@@ -33,18 +34,21 @@ enum ERROR{
 
 struct game_t{
     char** map;
+    int socket_fd;
     struct player_t* players;
     //struct beast_t* beasts;
     //pthread_t* beasts_threads;
     struct beast_t* beasts [10];
     struct dropped_treasure_t** dropped_treasures;
     pthread_t beasts_threads[10];
+    pthread_t players_threads[4];
     unsigned int number_of_players;
     unsigned int number_of_beasts;
     unsigned int rounds;
     unsigned int number_of_dropped_treasures;
     pthread_t tick_thread;
-    pthread_mutex_t map_mutex;
+    pthread_t listener;
+    pthread_mutex_t main_mutex;
     pthread_mutex_t players_mutex;
     pthread_mutex_t beasts_mutex;
     pthread_mutex_t treasures_mutex;
@@ -53,6 +57,7 @@ struct game_t{
 
 struct player_t{
     unsigned char id;
+    int* file_descriptor;
     bool already_moved;
     bool in_bush;
     bool in_camp;
@@ -93,16 +98,26 @@ struct dropped_treasure_t{
     pthread_mutex_t treasure_mutex;
 };
 
+struct send_data_t{
+    int x;
+    int y;
+    char player_map[5][5];
+    unsigned int game_round;
+    unsigned int carried;
+    unsigned int brought;
+};
+
 typedef struct player_t PLAYER;
 typedef struct beast_t BEAST;
 typedef struct game_t GAME;
 typedef struct dropped_treasure_t DROPPED_TREASURE;
+typedef struct send_data_t SEND_DATA;
 
 GAME * create_game();
 char ** load_map(char *filename, int *err);
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
-int spawn_player(GAME *game);
+int spawn_player(GAME *game, int* file_descriptor);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
 void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
 

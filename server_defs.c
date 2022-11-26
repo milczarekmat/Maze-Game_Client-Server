@@ -19,7 +19,7 @@ GAME * create_game(){
     game->dropped_treasures = NULL;
     //game->beasts = NULL;
     //game->beasts_threads = NULL;
-    pthread_mutex_init(&game->map_mutex, NULL);
+    pthread_mutex_init(&game->main_mutex, NULL);
     pthread_mutex_init(&game->players_mutex, NULL);
     pthread_mutex_init(&game->beasts_mutex, NULL);
     pthread_mutex_init(&game->treasures_mutex, NULL);
@@ -27,11 +27,12 @@ GAME * create_game(){
     return game;
 }
 
-int spawn_player(GAME *game){
+int spawn_player(GAME *game, int* file_descriptor){
     //TODO muteks, watek obslugujacy gracza
     pthread_mutex_lock(&game->players_mutex);
     PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
     if (!new_players){
+        //todo zwalniac pamiec juz w funkcji zamiast zwracac kod bledu
         return -1;
     }
     game->players = new_players;
@@ -40,28 +41,27 @@ int spawn_player(GAME *game){
 
     int x, y;
     srand(time(NULL));
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
     }
     while(game->map[y][x] != ' ');
-    // TODO zmienic na spawnowanie wg id
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
-    game->map[8][33] = '1';
-    pthread_mutex_unlock(&game->map_mutex);
+    player->id = game->number_of_players + 1;
+    game->map[8][33] = player->id + 48;
+    pthread_mutex_unlock(&game->main_mutex);
     // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
     player->x_spawn = 33;
     player->x_position = 33;
     player->y_spawn = 8;
     player->y_position = 8;
-    player->id = game->number_of_players + 1;
+    player->file_descriptor = file_descriptor;
     player->carried = 0;
     player->brought = 0;
     player->deaths = 0;
      player->in_bush = false;
-//    player->out_bush = FALSE;
     player->bush_status = 0;
     player->in_camp = false;
     player->already_moved = false;
@@ -71,16 +71,18 @@ int spawn_player(GAME *game){
     //pthread_cond_init(&player->move_wait, NULL);
     pthread_cond_init(&player->bush_wait, NULL);
 
+    pthread_create(game->players_threads + game->number_of_players, NULL, &player_thread, game);
+
     // TODO DODAC MUTEKS PLAYERS?
-    pthread_mutex_lock(&game->players_mutex);
-    (game->number_of_players)++;
-    pthread_mutex_unlock(&game->players_mutex);
+    //pthread_mutex_lock(&game->players_mutex);
+    //(game->number_of_players)++;
+    //pthread_mutex_unlock(&game->players_mutex);
     generate_map(game);
     return 0;
 }
 
 void generate_map(GAME *game){
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     start_color();
     noecho();
     // TODO ponizsze do funkcji
@@ -118,7 +120,7 @@ void generate_map(GAME *game){
     }
     move(0, 0);
     refresh();
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
 }
 
 char ** load_map(char *filename, int *err){
@@ -175,9 +177,9 @@ void free_game(GAME **game){
 
     pthread_cancel((*game)->tick_thread);
 
-    pthread_mutex_lock(&(*game)->map_mutex);
+    pthread_mutex_lock(&(*game)->main_mutex);
     free_map((*game)->map, HEIGHT);
-    pthread_mutex_unlock(&(*game)->map_mutex);
+    pthread_mutex_unlock(&(*game)->main_mutex);
 
     pthread_mutex_lock(&(*game)->players_mutex);
     for (int i=0; i<(*game)->number_of_players; i++){
@@ -188,8 +190,16 @@ void free_game(GAME **game){
     pthread_mutex_unlock(&(*game)->players_mutex);
 
     //TODO zwalnianie treasures i ich mutexow
+    pthread_mutex_lock(&(*game)->treasures_mutex);
+    for (int i=0; i<(*game)->number_of_dropped_treasures; i++){
+        pthread_mutex_destroy(&(*game)->dropped_treasures[i]->treasure_mutex);
+        free((*game)->dropped_treasures[i]);
+    }
+    pthread_mutex_unlock(&(*game)->treasures_mutex);
+    free((*game)->dropped_treasures);
 
-    pthread_mutex_destroy(&(*game)->map_mutex);
+    pthread_mutex_destroy(&(*game)->main_mutex);
+    pthread_mutex_destroy(&(*game)->treasures_mutex);
     pthread_mutex_destroy(&(*game)->players_mutex);
     pthread_mutex_destroy(&(*game)->beasts_mutex);
     pthread_mutex_destroy(&(*game)->treasures_mutex);
@@ -242,7 +252,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
         return;
     }
 
-    int deaths = player->deaths;
+    //int deaths = player->deaths;
 
 /*    pthread_mutex_unlock(&player->player_mutex);
     pthread_mutex_lock(&player->player_mutex);*/
@@ -277,9 +287,9 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
     }
 
     // TODO sprawdzic ponizej race conidtions
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     if (game->map[player->y_position + y][player->x_position + x] == 'a'){
-        pthread_mutex_unlock(&game->map_mutex);
+        pthread_mutex_unlock(&game->main_mutex);
         pthread_mutex_unlock(&player->player_mutex);
         return;
     }
@@ -342,7 +352,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
             player->carried += 50;
             break;
         case '*':
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             pthread_mutex_unlock(&player->player_mutex);
             kill_player(game, player);
             return;
@@ -353,7 +363,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
     //game->map[player->y_position][player->x_position] = object_to_save;
 
     game->map[player->y_position + y][player->x_position + x] = player->id + 48;
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
 
     player->already_moved = true;
     player->y_position += y;
@@ -372,7 +382,7 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
 
 void show_players_info(GAME *game){
     int size = 5;
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     for (int i = 0; i < game->number_of_players; i++){
         int j = i + 1;
         // TODO refaktoryzacja
@@ -402,13 +412,13 @@ void show_players_info(GAME *game){
     }
     move(0, 0);
     refresh();
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
 }
 
 void generate_element(enum TYPE type, GAME* game){
     srand(time(NULL));
     int x, y;
-    pthread_mutex_lock(&game->map_mutex);
+    pthread_mutex_lock(&game->main_mutex);
     do{
         x = rand() % WIDTH;
         y = rand() % HEIGHT;
@@ -424,10 +434,11 @@ void generate_element(enum TYPE type, GAME* game){
     else if (type == TREASURE){
         game->map[y][x] = 'T';
     }
-    pthread_mutex_unlock(&game->map_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
     generate_map(game);
 }
 
+//TODO dorobic zwalnianie pamieci
 void main_error(enum ERROR err){
     clear();
     endwin();
