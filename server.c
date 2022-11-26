@@ -4,8 +4,9 @@
 #include "server_defs.h"
 #include "server_threads.h"
 #include "beast.h"
+#include "socket_server.h"
 
-// TODO flaga active dla dropped treasure, zwalnianie dropped treasures, char_wait cond, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), mijanie gracza z bestia, smierc w krzakach gracza, bestia stay condition, bestia na skrzyzowaniach, zdublowanie bestii, gonienie gracza, zabicie gracza, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic bush_status, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO zwalnianie dropped treasures i listener, char_wait cond, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), mijanie gracza z bestia, bestia stay condition, bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic sprawdzenie rows i cols dla statystyk graczy
 int main() {
     GAME* game = create_game();
 
@@ -17,29 +18,31 @@ int main() {
         main_error(SIZE_OF_CONSOLE);
     }
 
-    int check_alloc = spawn_player(game);
+/*    int check_alloc = spawn_player(game, NULL);
     if (check_alloc){
         free_game(&game);
         main_error(ALLOCATION);
-    }
+    }*/
     generate_map(game);
     show_players_info(game);
     pthread_create(&game->tick_thread, NULL, &tick, game);
     keypad(stdscr, TRUE);
     cbreak();
-    while(1){
+    init_server_socket(game);
+    while(true){
         //pthread_mutex_lock(&(game->map_mutex));
         //nodelay(stdscr, TRUE);
         int ch = getch();
-        if (ch == ERR){
+/*        if (ch == ERR){
             move(20, WIDTH + (10));
             clrtoeol();
             mvprintw(20, WIDTH + (10), "ERR");
-        }
+        }*/
         //pthread_mutex_unlock(&(game->map_mutex));
         switch (ch) {
             case 'q':
             case 'Q':
+                close(game->socket_fd);
                 endwin();
                 free_game(&game);
                 return 0;

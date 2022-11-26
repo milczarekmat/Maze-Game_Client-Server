@@ -46,7 +46,9 @@ void * tick(void * arg){
             pthread_cond_signal(&beast->move_wait);
         }
         pthread_mutex_unlock(&game->beasts_mutex);
+        pthread_mutex_lock(&game->main_mutex);
         (game->rounds)++;
+        pthread_mutex_unlock(&game->main_mutex);
     }
 }
 
@@ -69,30 +71,13 @@ void * beast_thread(void * arg) {
         unsigned int beast_x = beast->x_position, beast_y = beast->y_position;
         int x_to_player = beast->x_to_player, y_to_player = beast->y_to_player;
         pthread_mutex_unlock(&beast->beast_mutex);
-/*        pthread_mutex_lock(&game->map_mutex);
-        move(20, WIDTH + (10));
-        clrtoeol();
-        move(22, WIDTH + (10));
-        clrtoeol();
-        move(24, WIDTH + (10));
-        clrtoeol();
-        pthread_mutex_unlock(&game->map_mutex);*/
-
         if (beast->seeing_player) {
             enum DIRECTION direct = check_if_chase_available(game, beast, beast_x, beast_y, x_to_player, y_to_player);
-            pthread_mutex_lock(&game->map_mutex);
-/*            move(20, WIDTH + (10));
-            clrtoeol();
-            move(22, WIDTH + (10));
-            clrtoeol();
-            mvprintw(20, WIDTH + (10), "x_to_player: %d", beast->x_to_player);
-            mvprintw(22, WIDTH + (10), "y_to_player: %d", beast->y_to_player);*/
-            pthread_mutex_unlock(&game->map_mutex);
+            pthread_mutex_lock(&game->main_mutex);
+            pthread_mutex_unlock(&game->main_mutex);
             // TODO POPRAWIC
             if ((abs(beast->x_to_player) <= 1 && abs(beast->y_to_player) == 0) ||
             (abs(beast->y_to_player) <= 1 && abs(beast->x_to_player) == 0)){
-
-                //mvprintw(24, WIDTH + (10), "Done flag avail");
                 beast->available_kill = true;
             }
             move_beast(direct, game, beast);
@@ -123,26 +108,59 @@ void * beast_thread(void * arg) {
             }
             else {
                 enum DIRECTION direct = rand_direction_for_beast_move(n, available_directions, beast->opposite_direction);
-                 //pthread_mutex_lock(&game->map_mutex);
-
-                 //move(22, WIDTH + (10));
-                 //clrtoeol();
-                 //mvprintw(22, WIDTH + (10), "Opposite direct: %d", beast->opposite_direction);
-
-                 //move(24, WIDTH + (10));
-                 //clrtoeol();
-                 //mvprintw(24, WIDTH + (10), "Avail kill %d", beast->available_kill);
-                 //pthread_mutex_unlock(&game->map_mutex);
-
-                //if (direct != STAY){
                 move_beast(direct, game, beast);
-                //}
             }
         }
     }
 }
-/*
 
+void * player_thread(void * arg){
+    GAME *game = (GAME *) arg;
+    pthread_mutex_lock(&game->players_mutex);
+    PLAYER* player = game->players + game->number_of_players;
+    (game->number_of_players)++;
+    pthread_mutex_unlock(&game->players_mutex);
+    int *player_fd = player->file_descriptor;
+    SEND_DATA data;
+    pthread_mutex_lock(&player->player_mutex);
+    data.x = player->x_position;
+    data.y = player->y_position;
+    data.carried = player->carried;
+    data.brought = player->brought;
+    pthread_mutex_lock(&game->main_mutex);
+    data.game_round = game->rounds;
+    //TODO granice mapy!
+    for (int i=-2, k=0; i<=2; i++, k++){
+        for (int j=-2, l=0; j<=2; j++, l++){
+/*            if (check_if_border_x_exceeded(x + i) ||
+                check_if_border_y_exceeded(y + j)){
+                continue;
+            }*/
+            data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+        }
+    }
+    pthread_mutex_unlock(&game->main_mutex);
+    pthread_mutex_unlock(&player->player_mutex);
+    long check = send(*player_fd, &data, sizeof(data), 0);
+    if (check == -1){
+        endwin();
+        free_game(&game);
+        exit(9);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 void * getch_thread(void * arg){
     GAME *game = (GAME *) arg;
 
