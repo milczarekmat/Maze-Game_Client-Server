@@ -129,14 +129,15 @@ void * player_thread(void * arg){
     data.brought = player->brought;
     pthread_mutex_lock(&game->main_mutex);
     data.game_round = game->rounds;
-    //TODO granice mapy!
     for (int i=-2, k=0; i<=2; i++, k++){
         for (int j=-2, l=0; j<=2; j++, l++){
-/*            if (check_if_border_x_exceeded(x + i) ||
-                check_if_border_y_exceeded(y + j)){
-                continue;
-            }*/
-            data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+            if (check_if_border_y_exceeded(player->y_position + i)
+                || check_if_border_x_exceeded(player->x_position + j)){
+                data.player_map[k][l] = 'a';
+            }
+            else{
+                data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+            }
         }
     }
     pthread_mutex_unlock(&game->main_mutex);

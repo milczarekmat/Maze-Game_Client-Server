@@ -49,14 +49,14 @@ int spawn_player(GAME *game, int* file_descriptor){
     while(game->map[y][x] != ' ');
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
     player->id = game->number_of_players + 1;
-    game->map[8][33] = player->id + 48;
+    game->map[y][x] = player->id + 48;
     pthread_mutex_unlock(&game->main_mutex);
     // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
-    player->x_spawn = 33;
-    player->x_position = 33;
-    player->y_spawn = 8;
-    player->y_position = 8;
+    player->x_spawn = x;
+    player->x_position = x;
+    player->y_spawn = y;
+    player->y_position = y;
     player->file_descriptor = file_descriptor;
     player->carried = 0;
     player->brought = 0;
@@ -97,7 +97,10 @@ void generate_map(GAME *game){
 
     for (int i=0; i<HEIGHT; i++){
         for (int j=0; j<WIDTH; j++){
-            if (game->map[i][j] == (char)(game->number_of_players + '0')){
+/*            if (game->map[i][j] == (char)(game->number_of_players + '0')){
+                mvaddch(i, j, game->map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
+            }*/
+            if (isdigit(game->map[i][j])){
                 mvaddch(i, j, game->map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
             }
             else if (game->map[i][j] == 'A'){
@@ -458,11 +461,11 @@ void main_error(enum ERROR err){
 
 //TODO FUNKCJA SPRAWDZAJACA CZY MACIERZ GRACZA/BESTII NIE WYCHODZI POZA ZAKRES MAPY
 bool check_if_border_y_exceeded(unsigned int y){
-    return y >= HEIGHT ? true : false;
+    return y >= HEIGHT || y < 0 ? true : false;
 }
 
 bool check_if_border_x_exceeded(unsigned int x){
-    return x >= WIDTH ? true : false;
+    return x >= WIDTH || x < 0 ? true : false;
 }
 
 void add_dropped_treasure(GAME *game, char object_to_save, unsigned int carried_by_player,

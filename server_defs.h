@@ -35,6 +35,8 @@ enum ERROR{
 struct game_t{
     char** map;
     int socket_fd;
+    //TODO wykorzystac flage (true po zrespieniu pierwszego gracza)
+    bool started_game;
     struct player_t* players;
     //struct beast_t* beasts;
     //pthread_t* beasts_threads;
