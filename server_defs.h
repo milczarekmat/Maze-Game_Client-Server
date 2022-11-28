@@ -129,6 +129,8 @@ void free_map(char **map, int height);
 void free_game(GAME **game);
 bool check_if_border_x_exceeded(unsigned int x);
 bool check_if_border_y_exceeded(unsigned int y);
+// TODO
+void copy_map(GAME* game, PLAYER* player);
 
 unsigned int kill_player(GAME* game, PLAYER* player);
 void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,

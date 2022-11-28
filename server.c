@@ -48,16 +48,16 @@ int main() {
                 return 0;
                 // TODO PRZEKAZYWANIE ODPOWIEDNIEGO GRACZA
             case KEY_UP:
-                move_player(UP, game, 0);
+                move_player(UP, game, 1);
                 break;
             case KEY_DOWN:
-                move_player(DOWN, game, 0);
+                move_player(DOWN, game, 1);
                 break;
             case KEY_LEFT:
-                move_player(LEFT, game, 0);
+                move_player(LEFT, game, 1);
                 break;
             case KEY_RIGHT:
-                move_player(RIGHT, game, 0);
+                move_player(RIGHT, game, 1);
                 break;
             case 'c':
                 generate_element(COIN, game);
