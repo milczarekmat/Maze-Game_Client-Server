@@ -186,7 +186,7 @@ void * event_handler(void * arg) {
             case 'q':
                 *socket_and_signal->signal = 'q';
                 send(socket_and_signal->socket_fd, socket_and_signal->signal, sizeof(char), 0);
-                close(socket_and_signal->socket_fd);
+                //close(socket_and_signal->socket_fd);
                 pthread_mutex_unlock(&main_mutex);
                 endwin();
                 pthread_mutex_destroy(&main_mutex);

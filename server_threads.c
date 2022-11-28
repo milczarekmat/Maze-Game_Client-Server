@@ -13,9 +13,14 @@ void * tick(void * arg){
 
         usleep(400000);
         generate_map(game);
+
+        refresh();
         // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);
         for (int i=0; i<game->number_of_players; i++){
+/*            move(24 + i, WIDTH + (10));
+            clrtoeol();
+            mvprintw(24 + i, WIDTH + (10), "Done");*/
             // TODO wskaznik player do zrobienia
             PLAYER* player = game->players + i;
             pthread_mutex_lock(&player->player_mutex);
@@ -143,8 +148,9 @@ void * player_thread(void * arg){
     SEND_DATA data;
     char signal_from_player;
     while (true) {
+
         //pthread_mutex_lock(&game->main_mutex);
-        pthread_mutex_lock(&player->player_mutex);
+        //pthread_mutex_lock(&player->player_mutex);
         data.x = player->x_position;
         data.y = player->y_position;
         data.carried = player->carried;
@@ -167,13 +173,14 @@ void * player_thread(void * arg){
             free_game(&game);
             exit(9);
         }*/
-        pthread_mutex_unlock(&player->player_mutex);
+        //pthread_mutex_unlock(&player->player_mutex);
         //pthread_mutex_unlock(&game->main_mutex);
         check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
         if (signal_from_player == 'q'){
             mvprintw(22, WIDTH + (10), "quited");
             refresh();
             break;
+            //pthread_cancel(*game->players_threads + player->id - 1);
         }
         else if (signal_from_player == 'w'){
 
@@ -189,8 +196,8 @@ void * player_thread(void * arg){
             move_player(RIGHT, game, player->id);
         }
         //todo switch
-
     }
+    game->number_of_players--;
 }
 
 
