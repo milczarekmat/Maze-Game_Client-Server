@@ -49,14 +49,14 @@ int spawn_player(GAME *game, int* file_descriptor){
     while(game->map[y][x] != ' ');
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
     player->id = game->number_of_players + 1;
-    game->map[y][x] = player->id + 48;
+    game->map[8][33] = player->id + 48;
     pthread_mutex_unlock(&game->main_mutex);
     // koordy przy obozie y16 x26
     // TODO ZMIENIC NA LOSOWANIE Z POWROTEM
-    player->x_spawn = x;
-    player->x_position = x;
-    player->y_spawn = y;
-    player->y_position = y;
+    player->x_spawn = 33;
+    player->x_position = 33;
+    player->y_spawn = 8;
+    player->y_position = 8;
     player->file_descriptor = file_descriptor;
     player->carried = 0;
     player->brought = 0;
@@ -246,7 +246,7 @@ void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x){
 }
 
 void move_player(enum DIRECTION side, GAME* game, unsigned int id){
-    PLAYER *player = game->players + id;
+    PLAYER *player = game->players + id - 1;
 
     pthread_mutex_lock(&player->player_mutex);
     //TODO PROBLEM Z RACE CONDITIONS?

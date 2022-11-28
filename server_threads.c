@@ -73,8 +73,8 @@ void * beast_thread(void * arg) {
         pthread_mutex_unlock(&beast->beast_mutex);
         if (beast->seeing_player) {
             enum DIRECTION direct = check_if_chase_available(game, beast, beast_x, beast_y, x_to_player, y_to_player);
-            pthread_mutex_lock(&game->main_mutex);
-            pthread_mutex_unlock(&game->main_mutex);
+/*            pthread_mutex_lock(&game->main_mutex);
+            pthread_mutex_unlock(&game->main_mutex);*/
             // TODO POPRAWIC
             if ((abs(beast->x_to_player) <= 1 && abs(beast->y_to_player) == 0) ||
             (abs(beast->y_to_player) <= 1 && abs(beast->x_to_player) == 0)){
@@ -122,31 +122,54 @@ void * player_thread(void * arg){
     pthread_mutex_unlock(&game->players_mutex);
     int *player_fd = player->file_descriptor;
     SEND_DATA data;
-    pthread_mutex_lock(&player->player_mutex);
-    data.x = player->x_position;
-    data.y = player->y_position;
-    data.carried = player->carried;
-    data.brought = player->brought;
-    pthread_mutex_lock(&game->main_mutex);
-    data.game_round = game->rounds;
-    for (int i=-2, k=0; i<=2; i++, k++){
-        for (int j=-2, l=0; j<=2; j++, l++){
-            if (check_if_border_y_exceeded(player->y_position + i)
-                || check_if_border_x_exceeded(player->x_position + j)){
-                data.player_map[k][l] = 'a';
-            }
-            else{
-                data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+    char signal_from_player;
+    while (true) {
+        //pthread_mutex_lock(&game->main_mutex);
+        //pthread_mutex_lock(&player->player_mutex);
+        data.x = player->x_position;
+        data.y = player->y_position;
+        data.carried = player->carried;
+        data.brought = player->brought;
+
+        data.game_round = game->rounds;
+        for (int i = -2, k = 0; i <= 2; i++, k++) {
+            for (int j = -2, l = 0; j <= 2; j++, l++) {
+                if (check_if_border_y_exceeded(player->y_position + i)
+                    || check_if_border_x_exceeded(player->x_position + j)) {
+                    data.player_map[k][l] = 'a';
+                } else {
+                    data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+                }
             }
         }
-    }
-    pthread_mutex_unlock(&game->main_mutex);
-    pthread_mutex_unlock(&player->player_mutex);
-    long check = send(*player_fd, &data, sizeof(data), 0);
-    if (check == -1){
-        endwin();
-        free_game(&game);
-        exit(9);
+        long check = send(*player_fd, &data, sizeof(data), 0);
+/*        if (check == -1) {
+            endwin();
+            free_game(&game);
+            exit(9);
+        }*/
+        //pthread_mutex_unlock(&player->player_mutex);
+        //pthread_mutex_unlock(&game->main_mutex);
+        check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
+        if (signal_from_player == 'q'){
+            break;
+        }
+        else if (signal_from_player == 'w'){
+            mvprintw(22, WIDTH + (10), "w %d", player->id);
+            refresh();
+            move_player(UP, game, player->id);
+        }
+        else if (signal_from_player == 's'){
+            move_player(DOWN, game, player->id);
+        }
+        else if (signal_from_player == 'a'){
+            move_player(LEFT, game, player->id);
+        }
+        else if (signal_from_player == 'd'){
+            move_player(RIGHT, game, player->id);
+        }
+        //todo switch
+
     }
 }
 
