@@ -17,21 +17,40 @@ void * tick(void * arg){
         pthread_mutex_lock(&game->players_mutex);
         for (int i=0; i<game->number_of_players; i++){
             // TODO wskaznik player do zrobienia
-            pthread_mutex_lock(&(game->players + i)->player_mutex);
+            PLAYER* player = game->players + i;
+            pthread_mutex_lock(&player->player_mutex);
 //            if ((game->players + i)->in_bush){
 //                (game->players + i)->out_bush = true;
 //            }
-            if ((game->players + i)->bush_status > 1){
-                (game->players + i)->bush_status -= 1;
+            if (player->bush_status > 1){
+                player->bush_status -= 1;
             }
-            (game->players + i)->already_moved = false;
-/*            if ((game->players + i)->bush_status == 1){
-                pthread_cond_signal(&(game->players + i)->move_wait);
-            }*/
+
+            //todo do funkcji copy!
+            player->already_moved = false;
+            SEND_DATA data;
+            data.x = player->x_position;
+            data.y = player->y_position;
+            data.carried = player->carried;
+            data.brought = player->brought;
+
+            data.game_round = game->rounds;
+            for (int i = -2, k = 0; i <= 2; i++, k++) {
+                for (int j = -2, l = 0; j <= 2; j++, l++) {
+                    if (check_if_border_y_exceeded(player->y_position + i)
+                        || check_if_border_x_exceeded(player->x_position + j)) {
+                        data.player_map[k][l] = 'a';
+                    } else {
+                        data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+                    }
+                }
+            }
+            long check = send(*player->file_descriptor, &data, sizeof(data), 0);
+
             // TODO BYLA ZMIANA KOLEJNOSCI UNLOCK I SIGNAL
-            pthread_mutex_unlock(&(game->players + i)->player_mutex);
-            if ((game->players + i)->bush_status == 1){
-                pthread_cond_signal(&(game->players + i)->bush_wait);
+            pthread_mutex_unlock(&player->player_mutex);
+            if (player->bush_status == 1){
+                pthread_cond_signal(&player->bush_wait);
             }
         }
         pthread_mutex_unlock(&game->players_mutex);
@@ -125,7 +144,7 @@ void * player_thread(void * arg){
     char signal_from_player;
     while (true) {
         //pthread_mutex_lock(&game->main_mutex);
-        //pthread_mutex_lock(&player->player_mutex);
+        pthread_mutex_lock(&player->player_mutex);
         data.x = player->x_position;
         data.y = player->y_position;
         data.carried = player->carried;
@@ -148,15 +167,16 @@ void * player_thread(void * arg){
             free_game(&game);
             exit(9);
         }*/
-        //pthread_mutex_unlock(&player->player_mutex);
+        pthread_mutex_unlock(&player->player_mutex);
         //pthread_mutex_unlock(&game->main_mutex);
         check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
         if (signal_from_player == 'q'){
+            mvprintw(22, WIDTH + (10), "quited");
+            refresh();
             break;
         }
         else if (signal_from_player == 'w'){
-            mvprintw(22, WIDTH + (10), "w %d", player->id);
-            refresh();
+
             move_player(UP, game, player->id);
         }
         else if (signal_from_player == 's'){
