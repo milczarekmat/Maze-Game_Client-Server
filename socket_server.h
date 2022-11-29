@@ -12,8 +12,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <netinet/in.h>
-#include "server_defs.h"
 #include <arpa/inet.h>
+#include "server_defs.h"
+//#include "queue.h"
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
