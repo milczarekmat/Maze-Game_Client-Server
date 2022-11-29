@@ -97,7 +97,7 @@ void * player_thread(void * arg){
     GAME *game = (GAME *) arg;
     pthread_mutex_lock(&game->players_mutex);
     PLAYER* player = game->players[game->number_of_players];
-    (game->number_of_players)++;
+    game->number_of_players++;
     pthread_mutex_unlock(&game->players_mutex);
     int *player_fd = player->file_descriptor;
     char signal_from_player;

@@ -11,12 +11,11 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <ctype.h>
-#include <sys/un.h>
 #define PORT 8080
 #define PORT1 8081
 #define BACKLOG 5
-#define SERVER_PATH "/tmp/server"
 
+void init_colors();
 void * event_handler(void * arg);
 
 struct received_t{
@@ -46,19 +45,14 @@ void generate_player_info(struct received_t data);
 
 int main(int argc, char** argv){
     SA_IN server_address;
-    int option = 1;
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1){
         perror("Error with creating socket\n");
         return 1;
     }
-    //setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
-    //setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
     memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    //server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-//    server_address.sin_port = 0;
     if (argc == 1){
         server_address.sin_port = htons(PORT);
     }
@@ -66,17 +60,6 @@ int main(int argc, char** argv){
         server_address.sin_port = htons(PORT1);
     }
 
-/*    if (bind(socket_fd, (SA*)&server_address, sizeof(server_address)) == -1){
-        endwin();
-        perror("Error with binding socket\n");
-        exit(1);
-    }*/
-/*    struct sockaddr_un serveraddr;
-    memset(&serveraddr, 0, sizeof(serveraddr));
-    serveraddr.sun_family = AF_UNIX;
-    strcpy(serveraddr.sun_path, SERVER_PATH);*/
-
-    //connect(socket_fd, (struct sockaddr *)&serveraddr, SUN_LEN(&serveraddr))
     if (connect(socket_fd, (SA*)&server_address, sizeof(server_address)) == -1) {
         perror("Connection with the server failed...\n");
         return 2;
@@ -93,7 +76,6 @@ int main(int argc, char** argv){
         exit(1);
     }*/
 
-
     struct socket_and_signal socket_and_signal;
     socket_and_signal.socket_fd = socket_fd;
     socket_and_signal.signal = malloc(sizeof(char));
@@ -105,7 +87,8 @@ int main(int argc, char** argv){
     *socket_and_signal.signal = 'x';
 
     initscr();
-    mvprintw(10, 10, "Socket fd: %d", socket_fd);
+    noecho();
+    init_colors();
     pthread_create(&event_thread, NULL, &event_handler, &socket_and_signal);
     struct received_t player_data;
     long connection_check = recv(socket_fd, &player_data, sizeof(struct received_t), 0);
@@ -158,9 +141,7 @@ int main(int argc, char** argv){
 
 void * event_handler(void * arg) {
     struct socket_and_signal *socket_and_signal = (struct socket_and_signal *) arg;
-    //scrollok(stdscr, TRUE);
     keypad(stdscr, TRUE);
-    noecho();
     while (true) {
         int ch = getch();
         pthread_mutex_lock(&main_mutex);
@@ -279,4 +260,17 @@ void generate_player_info(struct received_t data){
     move(0, 0);
     refresh();
     pthread_mutex_unlock(&main_mutex);
+}
+
+void init_colors()
+{
+    start_color();
+    init_pair(1, COLOR_GREEN, COLOR_WHITE); // kolor mapy
+    init_pair(2, COLOR_WHITE, COLOR_MAGENTA); //kolor gracza
+    init_pair(3, COLOR_WHITE, COLOR_BLACK); // kolor tła
+    init_pair(4, COLOR_WHITE, COLOR_RED); // kolor obozu
+    init_pair(5, COLOR_BLACK, COLOR_YELLOW); // kolor skarbów
+    init_pair(6, COLOR_RED, COLOR_WHITE); // kolor bestii
+    init_pair(7, COLOR_WHITE, COLOR_YELLOW); // kolor upuszczonych skarbów
+    bkgd(COLOR_PAIR(3));
 }

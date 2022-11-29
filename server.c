@@ -1,12 +1,11 @@
 #include <ncurses.h>
 #include <unistd.h>
-#include <ctype.h>
+#include "socket_server.h"
 #include "server_defs.h"
 #include "server_threads.h"
 #include "beast.h"
-#include "socket_server.h"
 
-// TODO zwalnianie dropped treasures i listener, char_wait cond, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), mijanie gracza z bestia, bestia stay condition, bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO kolizja graczy, znikanie obozu po przejsciu bestii, zwalnianie dropped treasures i listener, char_wait cond, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), mijanie gracza z bestia, bestia stay condition, bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic sprawdzenie rows i cols dla statystyk graczy
 int main() {
     GAME* game = create_game();
 
@@ -28,6 +27,7 @@ int main() {
     init_colors();
     generate_map(game);
     show_basic_info(game);
+    spawn_player(game, NULL);
     show_players_info(game);
     pthread_create(&game->tick_thread, NULL, &tick, game);
     keypad(stdscr, TRUE);
