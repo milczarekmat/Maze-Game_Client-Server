@@ -87,11 +87,6 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
 
     pthread_mutex_lock(&game->main_mutex);
 
-/*    move(22, WIDTH + (10));
-    clrtoeol();
-    mvprintw(22, WIDTH + (10), "Opposite direct: %d", beast->opposite_direction);*/
-
-
     if (game->map[beast->y_position + y][beast->x_position + x] == 'a'){
         pthread_mutex_unlock(&game->main_mutex);
         //TODO MUTEKS BEAST?
@@ -109,7 +104,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
                 int offset_x = 0, offset_y = 0 ;
                 offset_adaptation(direct, &offset_y, &offset_x);
                 for (int i = 0; i < game->number_of_players; i++) {
-                    PLAYER *player = game->players + i;
+                    PLAYER *player = game->players[i];
                     if (player->id + 48 ==
                     game->map[beast->y_position + offset_y][beast->x_position + offset_x]) {
 							int kill_place_x = player->x_position, kill_place_y = player->y_position;

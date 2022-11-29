@@ -6,12 +6,13 @@ void * tick(void * arg){
     while (true){
         // TODO PROBLEM PONIZEJ
         for (int i=0; i<game->number_of_players; i++){
-            pthread_mutex_lock(&(game->players + i)->player_mutex);
+            pthread_mutex_lock(&game->players[i]->player_mutex);
             show_players_info(game);
-            pthread_mutex_unlock(&(game->players + i)->player_mutex);
+            pthread_mutex_unlock(&game->players[i]->player_mutex);
+            //send_player_information(game, (game->players + i));
         }
 
-        usleep(400000);
+        usleep(1000000);
         generate_map(game);
 
         refresh();
@@ -22,7 +23,7 @@ void * tick(void * arg){
             clrtoeol();
             mvprintw(24 + i, WIDTH + (10), "Done");*/
             // TODO wskaznik player do zrobienia
-            PLAYER* player = game->players + i;
+            PLAYER* player = game->players[i];
             pthread_mutex_lock(&player->player_mutex);
 //            if ((game->players + i)->in_bush){
 //                (game->players + i)->out_bush = true;
@@ -33,7 +34,7 @@ void * tick(void * arg){
 
             //todo do funkcji copy!
             player->already_moved = false;
-            SEND_DATA data;
+/*            SEND_DATA data;
             data.x = player->x_position;
             data.y = player->y_position;
             data.carried = player->carried;
@@ -50,7 +51,8 @@ void * tick(void * arg){
                     }
                 }
             }
-            long check = send(*player->file_descriptor, &data, sizeof(data), 0);
+            long check = send(*player->file_descriptor, &data, sizeof(data), 0);*/
+            //send_player_information(game, (game->players + i));
 
             // TODO BYLA ZMIANA KOLEJNOSCI UNLOCK I SIGNAL
             pthread_mutex_unlock(&player->player_mutex);
@@ -135,26 +137,35 @@ void * beast_thread(void * arg) {
                 move_beast(direct, game, beast);
             }
         }
+/*        for (int i=0; i<game->number_of_players; i++){
+            send_player_information(game, (game->players + i));
+        }*/
     }
 }
 
 void * player_thread(void * arg){
     GAME *game = (GAME *) arg;
     pthread_mutex_lock(&game->players_mutex);
-    PLAYER* player = game->players + game->number_of_players;
+    PLAYER* player = game->players[game->number_of_players];
+    //int counter = game->number_of_players;
     (game->number_of_players)++;
     pthread_mutex_unlock(&game->players_mutex);
     int *player_fd = player->file_descriptor;
     SEND_DATA data;
     char signal_from_player;
     while (true) {
-
+/*        pthread_mutex_lock(&game->main_mutex);
+        mvprintw(25+ counter, WIDTH + counter*(10), "player id: %d", player->id);
+        refresh();
+        pthread_mutex_unlock(&game->main_mutex);*/
         //pthread_mutex_lock(&game->main_mutex);
         //pthread_mutex_lock(&player->player_mutex);
+        memset(&data, 0, sizeof(struct send_data_t));
         data.x = player->x_position;
         data.y = player->y_position;
         data.carried = player->carried;
         data.brought = player->brought;
+        data.id = player->id;
 
         data.game_round = game->rounds;
         for (int i = -2, k = 0; i <= 2; i++, k++) {
@@ -175,6 +186,7 @@ void * player_thread(void * arg){
         }*/
         //pthread_mutex_unlock(&player->player_mutex);
         //pthread_mutex_unlock(&game->main_mutex);
+
         check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
         if (signal_from_player == 'q'){
             mvprintw(22, WIDTH + (10), "quited");
@@ -198,14 +210,8 @@ void * player_thread(void * arg){
         //todo switch
     }
     game->number_of_players--;
+    return NULL;
 }
-
-
-
-
-
-
-
 
 
 
