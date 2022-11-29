@@ -71,7 +71,7 @@ int spawn_player(GAME *game, int* file_descriptor){
     player->carried = 0;
     player->brought = 0;
     player->deaths = 0;
-     player->in_bush = false;
+    player->in_bush = false;
     player->bush_status = 0;
     player->in_camp = false;
     player->already_moved = false;
@@ -80,8 +80,13 @@ int spawn_player(GAME *game, int* file_descriptor){
     pthread_mutex_init(&player->player_mutex, NULL);
     pthread_cond_init(&player->bush_wait, NULL);
 
-    pthread_create(game->players_threads + game->number_of_players, NULL, &player_thread, game);
-
+    if (file_descriptor){
+        pthread_create(game->players_threads + game->number_of_players, NULL, &player_thread, game);
+    }
+    else{
+        game->number_of_players++;
+    }
+    
     // TODO DODAC MUTEKS PLAYERS?
     //pthread_mutex_lock(&game->players_mutex);
     //(game->number_of_players)++;
@@ -546,6 +551,9 @@ char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsi
 }
 
 void send_player_information(GAME* game, PLAYER* player){
+    if (!player->file_descriptor){
+        return;
+    }
     SEND_DATA data;
     data.x = player->x_position;
     data.y = player->y_position;
