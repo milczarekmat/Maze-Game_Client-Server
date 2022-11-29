@@ -23,11 +23,13 @@ GAME * create_game(){
     pthread_mutex_init(&game->players_mutex, NULL);
     pthread_mutex_init(&game->beasts_mutex, NULL);
     pthread_mutex_init(&game->treasures_mutex, NULL);
+    pthread_mutex_init(&game->server_mutex, NULL);
     pthread_cond_init(&game->char_wait, NULL);
+    pthread_cond_init(&game->server_wait, NULL);
     return game;
 }
 
-int spawn_player(GAME *game, int* file_descriptor){
+int spawn_player(GAME *game){
     //TODO muteks, watek obslugujacy gracza
     pthread_mutex_lock(&game->players_mutex);
 /*    PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
@@ -58,7 +60,7 @@ int spawn_player(GAME *game, int* file_descriptor){
     player->x_position = x;
     player->y_spawn = y;
     player->y_position = y;
-    player->file_descriptor = file_descriptor;
+    //player->file_descriptor = file_descriptor;
     player->carried = 0;
     player->brought = 0;
     player->deaths = 0;
@@ -73,12 +75,12 @@ int spawn_player(GAME *game, int* file_descriptor){
     pthread_cond_init(&player->bush_wait, NULL);
 
     //mvprintw(15, WIDTH + (10), "number of players: %d", game->number_of_players);
-    pthread_create(game->players_threads + game->number_of_players, NULL, &player_thread, game);
+    //pthread_create(game->players_threads + game->number_of_players, NULL, &player_thread, game);
 
     // TODO DODAC MUTEKS PLAYERS?
-    //pthread_mutex_lock(&game->players_mutex);
-    //(game->number_of_players)++;
-    //pthread_mutex_unlock(&game->players_mutex);
+    pthread_mutex_lock(&game->players_mutex);
+    (game->number_of_players)++;
+    pthread_mutex_unlock(&game->players_mutex);
     generate_map(game);
     return 0;
 }
@@ -208,6 +210,8 @@ void free_game(GAME **game){
     pthread_mutex_destroy(&(*game)->players_mutex);
     pthread_mutex_destroy(&(*game)->beasts_mutex);
     pthread_mutex_destroy(&(*game)->treasures_mutex);
+    pthread_cond_destroy(&((*game)->server_wait));
+    pthread_mutex_destroy(&(*game)->server_mutex);
 
 //    if ((*game)->players){
 //        free((*game)->players);
@@ -555,6 +559,75 @@ char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsi
     return object_to_save;
 }
 
+void handle_connection_with_player(GAME * game, const int *player_fd){
+    pthread_mutex_lock(&game->players_mutex);
+    PLAYER* player = game->players[game->number_of_players - 1];
+    //int counter = game->number_of_players;
+    //(game->number_of_players)++;
+    pthread_mutex_unlock(&game->players_mutex);
+    //player_fd = player->file_descriptor;
+    SEND_DATA data;
+    char signal_from_player;
+    while (true) {
+/*        pthread_mutex_lock(&game->main_mutex);
+        mvprintw(25+ counter, WIDTH + counter*(10), "player id: %d", player->id);
+        refresh();
+        pthread_mutex_unlock(&game->main_mutex);*/
+        //pthread_mutex_lock(&game->main_mutex);
+        //pthread_mutex_lock(&player->player_mutex);
+        memset(&data, 0, sizeof(struct send_data_t));
+        data.x = player->x_position;
+        data.y = player->y_position;
+        data.carried = player->carried;
+        data.brought = player->brought;
+        data.id = player->id;
+
+        data.game_round = game->rounds;
+        for (int i = -2, k = 0; i <= 2; i++, k++) {
+            for (int j = -2, l = 0; j <= 2; j++, l++) {
+                if (check_if_border_y_exceeded(player->y_position + i)
+                    || check_if_border_x_exceeded(player->x_position + j)) {
+                    data.player_map[k][l] = 'a';
+                } else {
+                    data.player_map[k][l] = game->map[player->y_position + i][player->x_position + j];
+                }
+            }
+        }
+        long check = send(*player_fd, &data, sizeof(data), 0);
+/*        if (check == -1) {
+            endwin();
+            free_game(&game);
+            exit(9);
+        }*/
+        //pthread_mutex_unlock(&player->player_mutex);
+        //pthread_mutex_unlock(&game->main_mutex);
+
+        check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
+        if (signal_from_player == 'q'){
+            mvprintw(22, WIDTH + (10), "quited");
+            refresh();
+            break;
+            //pthread_cancel(*game->players_threads + player->id - 1);
+        }
+        else if (signal_from_player == 'w'){
+
+            move_player(UP, game, player->id);
+        }
+        else if (signal_from_player == 's'){
+            move_player(DOWN, game, player->id);
+        }
+        else if (signal_from_player == 'a'){
+            move_player(LEFT, game, player->id);
+        }
+        else if (signal_from_player == 'd'){
+            move_player(RIGHT, game, player->id);
+        }
+        //todo switch
+    }
+    game->number_of_players--;
+}
+
+/*
 void send_player_information(GAME* game, PLAYER* player){
     SEND_DATA data;
     data.x = player->x_position;
@@ -580,3 +653,4 @@ void send_player_information(GAME* game, PLAYER* player){
         //todo
     }
 }
+*/

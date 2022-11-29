@@ -43,6 +43,11 @@ void init_server_socket(GAME *game){
 void * listener(void* arg){
     GAME *game = (GAME *)arg;
 
+    game->connections = create_queue();
+    for (int i=0; i<POOL; i++){
+        pthread_create(game->players_threads + i, NULL, &player_thread, game);
+    }
+
     int client_socket, address_size = sizeof(SA_IN);
     while(true) {
         //accept(game->socket_fd, NULL, NULL)
@@ -52,7 +57,7 @@ void * listener(void* arg){
             continue;
         }
         pthread_mutex_lock(&game->main_mutex);
-        mvprintw(24 + game->number_of_players, WIDTH + (10), "Connection accepted from %s:%d\n", inet_ntoa(client_address[game->number_of_players].sin_addr), ntohs(client_address[game->number_of_players].sin_port));
+        mvprintw(24 + game->number_of_players, WIDTH + (10), "Connection accepted from %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
         refresh();
         pthread_mutex_unlock(&game->main_mutex);
         bool flag = false;
@@ -73,6 +78,13 @@ void * listener(void* arg){
             continue;
         }
 
-        spawn_player(game, &client_socket);
+        pthread_mutex_lock(&game->server_mutex);
+
+        enqueue(&client_socket, game->connections);
+        pthread_cond_signal(&game->server_wait);
+
+        pthread_mutex_unlock(&game->server_mutex);
+
+        //spawn_player(game, &client_socket);
     }
 }

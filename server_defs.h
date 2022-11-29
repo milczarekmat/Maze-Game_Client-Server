@@ -8,6 +8,7 @@
 #include <time.h>
 #include <ncurses.h>
 #include "server_threads.h"
+#include "queue.h"
 
 #define HEIGHT 25
 #define WIDTH 45
@@ -44,6 +45,7 @@ struct game_t{
     struct player_t* players[4];
     struct beast_t* beasts [10];
     struct dropped_treasure_t** dropped_treasures;
+    struct queue_t* connections;
     pthread_t beasts_threads[10];
     pthread_t players_threads[4];
     unsigned int number_of_players;
@@ -56,12 +58,15 @@ struct game_t{
     pthread_mutex_t players_mutex;
     pthread_mutex_t beasts_mutex;
     pthread_mutex_t treasures_mutex;
+    pthread_mutex_t server_mutex;
+    // TODO usunac char_wait
     pthread_cond_t char_wait;
+    pthread_cond_t server_wait;
 };
 
 struct player_t{
     unsigned char id;
-    int* file_descriptor;
+    //int* file_descriptor;
     bool already_moved;
     bool in_bush;
     bool in_camp;
@@ -122,7 +127,7 @@ GAME * create_game();
 char ** load_map(char *filename, int *err);
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
-int spawn_player(GAME *game, int* file_descriptor);
+int spawn_player(GAME *game);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
 void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
 
@@ -139,5 +144,7 @@ unsigned int kill_player(GAME* game, PLAYER* player);
 void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,
                           unsigned int x, unsigned int y);
 char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsigned int player_y);
+
+void handle_connection_with_player(GAME * game, const int *player_fd);
 
 #endif
