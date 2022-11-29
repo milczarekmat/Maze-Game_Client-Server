@@ -8,11 +8,9 @@
 #include <time.h>
 #include <ncurses.h>
 #include "server_threads.h"
-#include "queue.h"
 
 #define HEIGHT 25
 #define WIDTH 45
-#define SERVER_PATH "/tmp/server"
 
 enum DIRECTION{
     STAY = 0,
@@ -39,13 +37,9 @@ struct game_t{
     int socket_fd;
     //TODO wykorzystac flage (true po zrespieniu pierwszego gracza)
     bool started_game;
-    //struct player_t* players;
-    //struct beast_t* beasts;
-    //pthread_t* beasts_threads;
     struct player_t* players[4];
     struct beast_t* beasts [10];
     struct dropped_treasure_t** dropped_treasures;
-    struct queue_t* connections;
     pthread_t beasts_threads[10];
     pthread_t players_threads[4];
     unsigned int number_of_players;
@@ -58,15 +52,12 @@ struct game_t{
     pthread_mutex_t players_mutex;
     pthread_mutex_t beasts_mutex;
     pthread_mutex_t treasures_mutex;
-    pthread_mutex_t server_mutex;
-    // TODO usunac char_wait
     pthread_cond_t char_wait;
-    pthread_cond_t server_wait;
 };
 
 struct player_t{
     unsigned char id;
-    //int* file_descriptor;
+    int* file_descriptor;
     bool already_moved;
     bool in_bush;
     bool in_camp;
@@ -125,9 +116,11 @@ typedef struct send_data_t SEND_DATA;
 
 GAME * create_game();
 char ** load_map(char *filename, int *err);
+void init_colors();
 void generate_map(GAME *game);
 void show_players_info(GAME *game);
-int spawn_player(GAME *game);
+void show_basic_info(GAME *game);
+int spawn_player(GAME *game, int* file_descriptor);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
 void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
 
@@ -137,7 +130,7 @@ void free_map(char **map, int height);
 void free_game(GAME **game);
 bool check_if_border_x_exceeded(unsigned int x);
 bool check_if_border_y_exceeded(unsigned int y);
-// TODO
+
 void send_player_information(GAME* game, PLAYER* player);
 
 unsigned int kill_player(GAME* game, PLAYER* player);
