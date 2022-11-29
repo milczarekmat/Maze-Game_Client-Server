@@ -11,6 +11,7 @@
 
 #define HEIGHT 25
 #define WIDTH 45
+#define SERVER_PATH "/tmp/server"
 
 enum DIRECTION{
     STAY = 0,
@@ -37,9 +38,10 @@ struct game_t{
     int socket_fd;
     //TODO wykorzystac flage (true po zrespieniu pierwszego gracza)
     bool started_game;
-    struct player_t* players;
+    //struct player_t* players;
     //struct beast_t* beasts;
     //pthread_t* beasts_threads;
+    struct player_t* players[4];
     struct beast_t* beasts [10];
     struct dropped_treasure_t** dropped_treasures;
     pthread_t beasts_threads[10];
@@ -107,6 +109,7 @@ struct send_data_t{
     unsigned int game_round;
     unsigned int carried;
     unsigned int brought;
+    unsigned char id;
 };
 
 typedef struct player_t PLAYER;
@@ -130,7 +133,7 @@ void free_game(GAME **game);
 bool check_if_border_x_exceeded(unsigned int x);
 bool check_if_border_y_exceeded(unsigned int y);
 // TODO
-void copy_map(GAME* game, PLAYER* player);
+void send_player_information(GAME* game, PLAYER* player);
 
 unsigned int kill_player(GAME* game, PLAYER* player);
 void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,

@@ -9,10 +9,12 @@ executable = server
 
 $(executable): $(headers) $(sources)
 	gcc -g -Wall -pthread -pedantic $(sources) -o $(executable) -lncurses
+	gcc -Wall -pedantic -lncurses -pthread client.c -o client
 
 .PHONY: clean
 clean:
 	rm $(executable)
+	rm client
 
 .PHONY: check
 check: $(executable)

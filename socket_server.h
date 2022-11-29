@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include "server_defs.h"
+#include <arpa/inet.h>
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
