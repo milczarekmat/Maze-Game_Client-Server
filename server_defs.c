@@ -129,7 +129,6 @@ void show_basic_info(GAME *game){
     init_pair(9, COLOR_GREEN, COLOR_BLACK); // kolor krzaka legenda
     pthread_mutex_lock(&game->main_mutex);
     mvprintw(0, WIDTH+5, "Server's PID: %d", getpid());
-//    mvprintw(0, WIDTH + 35, "Press q/Q to quit");
 
     mvprintw(5 , WIDTH+5, "Player ID's");
     mvprintw(6 , WIDTH+5, "Current X/Y");
@@ -163,7 +162,7 @@ void show_basic_info(GAME *game){
     mvprintw(21 , WIDTH+10, "- large treasure (50 coins)");
     mvprintw(22 , WIDTH+10, "- dropped treasure");
     mvprintw(23 , WIDTH+10, "- campsite");
-    mvprintw(25, WIDTH +6, "Press q/Q to quit");
+    mvprintw(25, WIDTH+5, "Press q/Q to quit");
 
     move(0, 0);
     refresh();
@@ -181,17 +180,19 @@ void show_players_info(GAME *game){
     mvprintw(3 , WIDTH+5, "Number of players: %d", game->number_of_players);
 
     for (int i = 0, j = i + 1; i < game->number_of_players; i++){
+        move(5, WIDTH + size);
+        clrtoeol();
         mvprintw(5, WIDTH + (size * j), "%d", game->players[i]->id);
-        move(6, WIDTH + (size * j));
+        move(6, WIDTH + size);
         clrtoeol();
         mvprintw(6 , WIDTH + (size * j), "%d/%d", game->players[i]->x_position, game->players[i]->y_position);
-        move(7, WIDTH + (size * j));
+        move(7, WIDTH + size);
         clrtoeol();
         mvprintw(7 , WIDTH + (size * j), "%d", game->players[i]->deaths);
-        move(9, WIDTH + (size * j));
+        move(9, WIDTH + size);
         clrtoeol();
         mvprintw(9 , WIDTH + (size * j), "%d", game->players[i]->carried);
-        move(10, WIDTH + (size * j));
+        move(10, WIDTH + size);
         clrtoeol();
         mvprintw(10 , WIDTH + (size * j), "%d", game->players[i]->brought);
         size += 15;
@@ -322,7 +323,6 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
     PLAYER *player = game->players[id - 1];
 
     pthread_mutex_lock(&player->player_mutex);
-    //TODO PROBLEM Z RACE CONDITIONS?
     if (player->already_moved){
         pthread_mutex_unlock(&player->player_mutex);
         return;
@@ -332,7 +332,6 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
         pthread_cond_wait(&player->bush_wait, &player->player_mutex);
     }
 
-    // TODO zmienic poruszanie wg id
     int x = 0, y = 0;
     switch (side) {
         case LEFT:
@@ -352,7 +351,6 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
             y = 0;
     }
 
-    // TODO sprawdzic ponizej race conidtions
     pthread_mutex_lock(&game->main_mutex);
     if (game->map[player->y_position + y][player->x_position + x] == 'a'){
         pthread_mutex_unlock(&game->main_mutex);
@@ -422,8 +420,6 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
     player->x_position += x;
     show_players_info(game);
     pthread_mutex_unlock(&player->player_mutex);
-
-    // TODO muteksy dla postion przy spawnowaniu graczy itd
     generate_map(game);
 }
 
@@ -468,7 +464,6 @@ void main_error(enum ERROR err){
     }
 }
 
-//TODO FUNKCJA SPRAWDZAJACA CZY MACIERZ GRACZA/BESTII NIE WYCHODZI POZA ZAKRES MAPY
 bool check_if_border_y_exceeded(unsigned int y){
     return y >= HEIGHT || y < 0 ? true : false;
 }
@@ -496,7 +491,6 @@ void add_dropped_treasure(GAME *game, char object_to_save, unsigned int carried_
         //pthread_mutex_unlock(&dropped_treas->treasure_mutex);
     }
     else{
-        // TODO MUTEKS
         pthread_mutex_lock(&game->treasures_mutex);
         DROPPED_TREASURE ** new_treasures = realloc(game->dropped_treasures,
                                                     (game->number_of_dropped_treasures+1)*sizeof(DROPPED_TREASURE*));
@@ -530,24 +524,13 @@ char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsi
             break;
         }
     }
-    //if (!dropped_treas){
-		    //endwin();
-            //free_game(&game);
-            //printf("NULL\n");
-            //exit(4);
-	//}
 	pthread_mutex_unlock(&game->treasures_mutex);
-	
-	
     char object_to_save;
-    // TODO czy potrzebny tu muteks player i treas?
-    //pthread_mutex_lock(&player->player_mutex);
-    pthread_mutex_lock(&dropped_treas->treasure_mutex);
+    // TODO czy potrzebny tu muteks treas?
+    //pthread_mutex_lock(&dropped_treas->treasure_mutex);
     player->carried += dropped_treas->value;
-    // TODO dezaktywacja flagi
     object_to_save = dropped_treas->last_object;
-    //pthread_mutex_unlock(&player->player_mutex);
-    pthread_mutex_unlock(&dropped_treas->treasure_mutex);
+    //pthread_mutex_unlock(&dropped_treas->treasure_mutex);
     return object_to_save;
 }
 
@@ -555,15 +538,16 @@ void send_player_information(GAME* game, PLAYER* player){
     if (!player->file_descriptor){
         return;
     }
-    //pthread_mutex_lock(&game->main_mutex);
     SEND_DATA data;
     data.x = player->x_position;
     data.y = player->y_position;
     data.carried = player->carried;
     data.brought = player->brought;
     data.id = player->id;
+    data.deaths = player->deaths;
 
     data.game_round = game->rounds;
+    pthread_mutex_lock(&game->main_mutex);
     for (int i = -2, k = 0; i <= 2; i++, k++) {
         for (int j = -2, l = 0; j <= 2; j++, l++) {
             if (check_if_border_y_exceeded(player->y_position + i)
@@ -579,5 +563,27 @@ void send_player_information(GAME* game, PLAYER* player){
     if (check == -1){
         //todo
     }
-    //pthread_mutex_unlock(&game->main_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
+}
+
+void delete_player(GAME* game, PLAYER* player){
+    pthread_mutex_lock(&player->player_mutex);
+    pthread_mutex_lock(&game->main_mutex);
+    if (player->object_to_save){
+        game->map[player->y_position][player->x_position] = player->object_to_save;
+    }
+    else {
+        if (player->bush_status >= 1) {
+            game->map[player->y_position][player->x_position] = '#';
+        }
+        else if (player->in_camp) {
+            game->map[player->y_position][player->x_position] = 'A';
+        }
+        else {
+            game->map[player->y_position][player->x_position] = ' ';
+        }
+    }
+    pthread_mutex_unlock(&player->player_mutex);
+    pthread_mutex_unlock(&game->main_mutex);
+    free(player);
 }

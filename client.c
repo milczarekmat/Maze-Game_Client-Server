@@ -6,13 +6,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <ncurses.h>
 #include <pthread.h>
 #include <ctype.h>
 #define PORT 8080
-#define PORT1 8081
 #define BACKLOG 5
 
 void init_colors();
@@ -26,6 +24,7 @@ struct received_t{
     unsigned int carried;
     unsigned int brought;
     unsigned char id;
+    unsigned int deaths;
 };
 
 struct socket_and_signal{
@@ -42,8 +41,7 @@ pthread_mutex_t main_mutex = PTHREAD_MUTEX_INITIALIZER;
 void generate_map(char map[5][5]);
 void generate_player_info(struct received_t data);
 
-
-int main(int argc, char** argv){
+int main(){
     SA_IN server_address;
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1){
@@ -53,28 +51,22 @@ int main(int argc, char** argv){
     memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
-    if (argc == 1){
-        server_address.sin_port = htons(PORT);
-    }
-    else{
-        server_address.sin_port = htons(PORT1);
-    }
+    server_address.sin_port = htons(PORT);
 
     if (connect(socket_fd, (SA*)&server_address, sizeof(server_address)) == -1) {
         perror("Connection with the server failed...\n");
         return 2;
     }
-    else{
-        printf("Connected to the server..\n");
-    }
 
 /*    char server_sign;
+    pthread_mutex_lock(&main_mutex);
     long connection_check = recv(socket_fd, &server_sign, sizeof(char), 0);
     if (connection_check == 0){
         printf("Pełny serwer\n");
         close(socket_fd);
         exit(1);
-    }*/
+    }
+    pthread_mutex_unlock(&main_mutex);*/
 
     struct socket_and_signal socket_and_signal;
     socket_and_signal.socket_fd = socket_fd;
@@ -104,10 +96,7 @@ int main(int argc, char** argv){
     generate_player_info(player_data);
 
     do{
-/*        printw("Waiting for mess\n");
-        refresh();*/
         long check = recv(socket_fd, &player_data, sizeof(struct received_t), 0);
-        //printw("Got mess\n");
 
         if (check == 0){
             close(socket_fd);
@@ -121,19 +110,6 @@ int main(int argc, char** argv){
             generate_map(player_data.player_map);
             generate_player_info(player_data);
         }
-
-/*        pthread_mutex_lock(&main_mutex);
-        long check_quit = send(socket_and_signal.socket_fd, socket_and_signal.signal, sizeof(char), 0);
-        if (*socket_and_signal.signal == 'q'){
-            close(socket_and_signal.socket_fd);
-            endwin();
-            pthread_mutex_destroy(&main_mutex);
-            free(socket_and_signal.signal);
-            printf("Closed connection on client\n");
-            exit(0);
-        }
-        *socket_and_signal.signal = 'x';
-        pthread_mutex_unlock(&main_mutex);*/
     }
     while (true);
 }
@@ -149,17 +125,13 @@ void * event_handler(void * arg) {
             case 'q':
                 *socket_and_signal->signal = 'q';
                 send(socket_and_signal->socket_fd, socket_and_signal->signal, sizeof(char), 0);
-                //close(socket_and_signal->socket_fd);
                 pthread_mutex_unlock(&main_mutex);
                 endwin();
                 pthread_mutex_destroy(&main_mutex);
                 free(socket_and_signal->signal);
-
+                close(socket_and_signal->socket_fd);
                 printf("Closed connection on client\n");
                 exit(0);
-
-                //pthread_exit();
-                break;
             case KEY_UP:
                 *socket_and_signal->signal = 'w';
                 send(socket_and_signal->socket_fd, socket_and_signal->signal, sizeof(char), 0);
@@ -184,45 +156,28 @@ void * event_handler(void * arg) {
 
 void generate_map(char map[5][5]){
     pthread_mutex_lock(&main_mutex);
-    start_color();
-    noecho();
-    // TODO ponizsze do funkcji
-    init_pair(1, COLOR_GREEN, COLOR_WHITE); // kolor mapy
-    init_pair(2, COLOR_WHITE, COLOR_MAGENTA); //kolor gracza
-    init_pair(3, COLOR_WHITE, COLOR_BLACK); // kolor tła
-    init_pair(4, COLOR_WHITE, COLOR_RED); // kolor obozu
-    init_pair(5, COLOR_BLACK, COLOR_YELLOW); // kolor skarbów
-    init_pair(6, COLOR_RED, COLOR_WHITE); // kolor bestii
-    init_pair(7, COLOR_WHITE, COLOR_YELLOW); // kolor upuszczonych skarbów
-    bkgd(COLOR_PAIR(3));
-
+    int offset_y = 1;
+    int offset_x = 4;
     for (int i=0; i<5; i++){
         for (int j=0; j<5; j++){
-/*            if (map[i][j] == (char)(game->number_of_players + '0')){
-                mvaddch(i, j, map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
-            }*/
             if (isdigit(map[i][j])){
-                mvaddch(i, j, map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
+                mvaddch(i+offset_y, j+offset_x, map[i][j] | A_ALTCHARSET | COLOR_PAIR(2));
             }
             else if (map[i][j] == 'A'){
-                mvaddch(i, j, map[i][j] | COLOR_PAIR(4));
+                mvaddch(i+offset_y, j+offset_x, map[i][j] | COLOR_PAIR(4));
             }
             else if (map[i][j] == 'c' || map[i][j] == 't' || map[i][j] == 'T'){
-                mvaddch(i, j, map[i][j] | COLOR_PAIR(5));
+                mvaddch(i+offset_y, j+offset_x, map[i][j] | COLOR_PAIR(5));
             }
             else if (map[i][j] == '*'){
-                mvaddch(i, j, map[i][j] | COLOR_PAIR(6));
+                mvaddch(i+offset_y, j+offset_x, map[i][j] | COLOR_PAIR(6));
             }
             else if (map[i][j] == 'D'){
-                mvaddch(i, j, map[i][j] | COLOR_PAIR(7));
+                mvaddch(i+offset_y, j+offset_x, map[i][j] | COLOR_PAIR(7));
             }
-/*            else if (map[i][j] == 'b'){
-                mvaddch(i, j, map[i][j]  | COLOR_PAIR(8));
-            }*/
             else{
-                mvaddch(i, j, map[i][j] | A_ALTCHARSET | COLOR_PAIR(1));
+                mvaddch(i+offset_y, j+offset_x, map[i][j] | A_ALTCHARSET | COLOR_PAIR(1));
             }
-            //TODO koloruj gracza wg id
         }
     }
     move(10, 10);
@@ -234,30 +189,22 @@ void generate_player_info(struct received_t data){
     pthread_mutex_lock(&main_mutex);
     move(0, 20);
     clrtoeol();
-    mvprintw(0, 20, "Player ID: %d", data.id);
-    move(2, 20);
+    mvprintw(0, 14, "Player ID: %d", data.id);
+    move(1, 20);
     clrtoeol();
-    mvprintw(2 , 20, "Current X/Y: %d/%d", data.x, data.y);
-    move(2, 20);
+    mvprintw(1 , 14, "Round: %d", data.game_round);
+    move(3, 20);
     clrtoeol();
-    mvprintw(2 , 20, "Current X/Y: %d/%d", data.x, data.y);
-/*
-    move(6, WIDTH + (size * j));
+    mvprintw(3 , 14, "Current X/Y: %d/%d", data.x, data.y);
+    move(4, 20);
     clrtoeol();
-    mvprintw(6 , WIDTH + (size * j), "Carried: %d", (game->players + i)->carried);
-    move(8, WIDTH + (size * j));
-    clrtoeol();
-    mvprintw(8 , WIDTH + (size * j), "Brought: %d", (game->players + i)->brought);
-    move(10, WIDTH + (size * j));
-    clrtoeol();
-    mvprintw(10, WIDTH + (size * j), "Deaths: %d", (game->players + i)->deaths);
-    move(12, WIDTH + (size * j));
-    clrtoeol();
-    mvprintw(12, WIDTH + (size * j), "Round number: %d", game->rounds);
-    mvprintw(18 , WIDTH + (size * j), "Press q/Q to quit");
-*/
-
-    move(0, 0);
+    mvprintw(4 , 14, "Carried: %d", data.carried);
+    move(5, 20);
+    mvprintw(5 , 14, "Brought: %d", data.brought);
+    move(6, 20);
+    mvprintw(6 , 14, "Deaths: %d", data.deaths);
+    move(10, 10);
+    printw("Press q/Q to quit");
     refresh();
     pthread_mutex_unlock(&main_mutex);
 }

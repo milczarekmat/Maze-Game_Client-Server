@@ -5,7 +5,7 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO kolizja graczy, znikanie obozu po przejsciu bestii, komunikat o pelnym serwerze, crashowanie klienta jesli coin jest obok krzaka lub podwojne krzaki, zwalnianie dropped treasures i listener, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast
+// TODO kolizja graczy, znikanie obozu po przejsciu bestii, komunikat o pelnym serwerze, valgrind, crashowanie klienta jesli coin jest obok krzaka lub podwojne krzaki, zwalnianie dropped treasures i listener, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu,
 int main() {
     GAME* game = create_game();
 
@@ -17,32 +17,23 @@ int main() {
         main_error(SIZE_OF_CONSOLE);
     }
 
-/*    int check_alloc = spawn_player(game, NULL);
-    if (check_alloc){
-        free_game(&game);
-        main_error(ALLOCATION);
-    }*/
 
     noecho();
     init_colors();
-    generate_map(game);
-    show_basic_info(game);
-    spawn_player(game, NULL);
-    show_players_info(game);
-    pthread_create(&game->tick_thread, NULL, &tick, game);
     keypad(stdscr, TRUE);
     cbreak();
+    int check_alloc = spawn_player(game, NULL);
+    if (check_alloc){
+        free_game(&game);
+        main_error(ALLOCATION);
+    }
+    generate_map(game);
+    show_basic_info(game);
+    show_players_info(game);
+    pthread_create(&game->tick_thread, NULL, &tick, game);
     init_server_socket(game);
     while(true){
-        //pthread_mutex_lock(&(game->map_mutex));
-        //nodelay(stdscr, TRUE);
         int ch = getch();
-/*        if (ch == ERR){
-            move(20, WIDTH + (10));
-            clrtoeol();
-            mvprintw(20, WIDTH + (10), "ERR");
-        }*/
-        //pthread_mutex_unlock(&(game->map_mutex));
         switch (ch) {
             case 'q':
             case 'Q':

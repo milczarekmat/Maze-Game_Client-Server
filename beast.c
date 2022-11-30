@@ -161,24 +161,24 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
 
     pthread_mutex_lock(&beast->beast_mutex);
     beast->already_moved = true;
+    pthread_mutex_unlock(&beast->beast_mutex);
     beast->last_encountered_object = object_to_save;
     beast->x_position += x;
     beast->y_position += y;
     beast->last_direction = side;
     beast->coming_until_wall = true;
     beast->available_kill = false;
-    pthread_mutex_unlock(&beast->beast_mutex);
     generate_map(game);
 }
 
 void check_beast_vision(GAME *game, BEAST *beast){
     // TODO ZASTANOWIC SIE CZY MUTEKSY BESTII SA TU POTRZEBNE
-    pthread_mutex_lock(&beast->beast_mutex);
+    //pthread_mutex_lock(&beast->beast_mutex);
     int x = beast->x_position, y = beast->y_position;
     beast->seeing_player = 0;
     beast->y_to_player = 0;
     beast->x_to_player = 0;
-    pthread_mutex_unlock(&beast->beast_mutex);
+    //pthread_mutex_unlock(&beast->beast_mutex);
 
     bool** walls = calloc(5, sizeof(bool *));
 
@@ -203,45 +203,11 @@ void check_beast_vision(GAME *game, BEAST *beast){
     }
     // TODO to na gorze do funkcji
 
-/*    char ** beast_view = calloc(5, sizeof(char *));
-    if (!beast_view){
-        perror("Failed to allocate memory for beast_map arr");
-        free(walls);
-        free_game(&game);
-        exit(3);
-    }*/
-/*    for (int i=0; i<5; i++){
-        *(beast_view + i) = calloc(5, sizeof(char));
-
-        if (!*(beast_view + i)){
-            for (int j=0; j<i; j++){
-                free(*(beast_view + j));
-            }
-            free(beast_view);
-            free(walls);
-            free_game(&game);
-            perror("Failed to allocate memory for beast_map arr");
-            exit(3);
-        }
-    }*/
-
-    /*pthread_mutex_lock(&game->map_mutex);
-    for (int i=-2, k=0; i<=2; i++, k++){
-        for (int j=-2, l=0; j<=2; j++, l++){
-            if (check_if_border_x_exceeded(x + i) ||
-                check_if_border_y_exceeded(y + j)){
-                continue;
-            }
-            beast_view[k][l] = game->map[x + i][y + j];
-        }
-    }
-    pthread_mutex_unlock(&game->map_mutex);*/
-
     enum DIRECTION direct;
     // TODO OPISAC INSTRUKCJE Z PLIKIEM PNG, REFAKTORYZACJA
 
     pthread_mutex_lock(&game->main_mutex);
-    pthread_mutex_lock(&beast->beast_mutex);
+    //pthread_mutex_lock(&beast->beast_mutex);
     // poziom pierwszy przeszukiwan
     for (direct=1; direct<=4; direct++){
         check_fields_for_player_occurrence(game, beast, walls, x, y, 1, direct, STAY);
@@ -254,7 +220,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             //pthread_mutex_unlock(&game->map_mutex);
             //beast->available_kill = true;
             pthread_mutex_unlock(&game->main_mutex);
-            pthread_mutex_unlock(&beast->beast_mutex);
+            //pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
     }
@@ -264,7 +230,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             check_fields_for_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
             if (beast->seeing_player) {
                 pthread_mutex_unlock(&game->main_mutex);
-                pthread_mutex_unlock(&beast->beast_mutex);
+                //pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
         }
@@ -279,7 +245,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
         check_fields_for_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
         if (beast->seeing_player) {
             pthread_mutex_unlock(&game->main_mutex);
-            pthread_mutex_unlock(&beast->beast_mutex);
+            //pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
     }
@@ -307,7 +273,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
                     pthread_mutex_unlock(&game->main_mutex);
-                    pthread_mutex_unlock(&beast->beast_mutex);
+                    //pthread_mutex_unlock(&beast->beast_mutex);
                     return;
                 }
             }
@@ -322,12 +288,11 @@ void check_beast_vision(GAME *game, BEAST *beast){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
                     pthread_mutex_unlock(&game->main_mutex);
-                    pthread_mutex_unlock(&beast->beast_mutex);
+                    //pthread_mutex_unlock(&beast->beast_mutex);
                     return;
                 }
             }
             beast->seeing_player = false;
-            //wall_flag = false;
         }
     }
     // poziom piaty przeszukiwan
@@ -346,28 +311,26 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 beast->y_to_player += offset_y;
                 beast->x_to_player += offset_x;
                 pthread_mutex_unlock(&game->main_mutex);
-                pthread_mutex_unlock(&beast->beast_mutex);
+                //pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
 
         }
     }
     pthread_mutex_unlock(&game->main_mutex);
-    pthread_mutex_unlock(&beast->beast_mutex);
+    //pthread_mutex_unlock(&beast->beast_mutex);
 
 
     for (int i=0; i<5; i++){
         free(*(walls + i));
-        //free(*(beast_view + i));
     }
     free(walls);
-    //free(beast_view);
 
-    pthread_mutex_lock(&beast->beast_mutex);
+    //pthread_mutex_lock(&beast->beast_mutex);
     beast->seeing_player = false;
     beast->x_to_player = 0;
     beast->y_to_player = 0;
-    pthread_mutex_unlock(&beast->beast_mutex);
+    //pthread_mutex_unlock(&beast->beast_mutex);
 }
 
 void founded_player(BEAST* beast, int x, int y){
@@ -571,12 +534,7 @@ enum DIRECTION check_if_chase_available(GAME *game, BEAST *beast, unsigned int x
 }
 
 unsigned int kill_player(GAME *game, PLAYER *player){
-    //mvprintw(26, WIDTH + (10), "Killed");
     pthread_mutex_lock(&player->player_mutex);
-/*    bool in_bush_flag = false;
-    if (player->bush_status >= 1){
-        in_bush_flag = true;
-    }*/
     unsigned int carried = player->carried;
     player->carried = 0;
     player->x_position = player->x_spawn;
@@ -586,19 +544,6 @@ unsigned int kill_player(GAME *game, PLAYER *player){
     player->already_moved = false;
     player->deaths++;
     game->map[player->y_spawn][player->x_spawn] = player->id + 48;
-/*    if (in_bush_flag){
-        // TODO ogarnac jak dzialaja sygnaly z yt
-        pthread_cond_signal(&player->bush_wait);
-    }
-
-    */
     pthread_mutex_unlock(&player->player_mutex);
-
-    //pthread_mutex_lock(&game->map_mutex);
-    // TODO czekanie az miejsce respawnu bedzie puste
-    // TODO MAP MUTEKS REKURSYWNY
-    //pthread_mutex_unlock(&game->map_mutex);
-    // TODO czy konieczne?
-    //check_beast_vision(game, beast);
     return carried;
 }

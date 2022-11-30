@@ -4,11 +4,11 @@
 void * tick(void * arg){
     GAME *game = (GAME *)arg;
     while (true){
-        // TODO PROBLEM PONIZEJ
         for (int i=0; i<game->number_of_players; i++){
             pthread_mutex_lock(&game->players[i]->player_mutex);
             show_players_info(game);
             pthread_mutex_unlock(&game->players[i]->player_mutex);
+            send_player_information(game, (game->players[i]));
         }
 
         usleep(600000);
@@ -24,7 +24,7 @@ void * tick(void * arg){
                 player->bush_status -= 1;
             }
             player->already_moved = false;
-            send_player_information(game, (game->players[i]));
+            //send_player_information(game, (game->players[i]));
 
             pthread_mutex_unlock(&player->player_mutex);
             if (player->bush_status == 1){
@@ -63,12 +63,8 @@ void * beast_thread(void * arg) {
         pthread_mutex_unlock(&beast->beast_mutex);
 
         check_beast_vision(game, beast);
-        pthread_mutex_lock(&beast->beast_mutex);
-        unsigned int beast_x = beast->x_position, beast_y = beast->y_position;
-        int x_to_player = beast->x_to_player, y_to_player = beast->y_to_player;
-        pthread_mutex_unlock(&beast->beast_mutex);
         if (beast->seeing_player) {
-            enum DIRECTION direct = check_if_chase_available(game, beast, beast_x, beast_y, x_to_player, y_to_player);
+            enum DIRECTION direct = check_if_chase_available(game, beast, beast->x_position, beast->y_position, beast->x_to_player, beast->y_to_player);
             if ((abs(beast->x_to_player) <= 1 && abs(beast->y_to_player) == 0) ||
             (abs(beast->y_to_player) <= 1 && abs(beast->x_to_player) == 0)){
                 beast->available_kill = true;
@@ -78,7 +74,7 @@ void * beast_thread(void * arg) {
         }
         else {
             int n;
-            enum DIRECTION* available_directions = check_available_directions(game, beast_x, beast_y, &n);
+            enum DIRECTION* available_directions = check_available_directions(game, beast->x_position, beast->y_position, &n);
             if (beast->coming_until_wall) {
                 move_beast(beast->last_direction, game, beast);
             }
@@ -104,18 +100,13 @@ void * player_thread(void * arg){
     while (true) {
         long check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
         if (check == 0){
-            mvprintw(28, WIDTH + (10), "quited");
-            refresh();
             break;
         }
+
         if (signal_from_player == 'q'){
-            mvprintw(28, WIDTH + (10), "quited");
-            refresh();
             break;
-            //pthread_cancel(*game->players_threads + player->id - 1);
         }
         else if (signal_from_player == 'w'){
-
             move_player(UP, game, player->id);
         }
         else if (signal_from_player == 's'){
@@ -127,10 +118,10 @@ void * player_thread(void * arg){
         else if (signal_from_player == 'd'){
             move_player(RIGHT, game, player->id);
         }
-        //todo switch
-        // BRAK MUTEKSU MAIN I PLAYER W SEND
+        // todo BRAK MUTEKSU PLAYER W SEND
         send_player_information(game, player);
     }
+    delete_player(game, player);
     game->number_of_players--;
     return NULL;
 }

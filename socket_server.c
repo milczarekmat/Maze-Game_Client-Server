@@ -6,7 +6,6 @@
 SA_IN server_address;
 SA_IN client_address;
 void init_server_socket(GAME *game){
-
     int option = 1;
     game->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     setsockopt(game->socket_fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
@@ -47,19 +46,19 @@ void * listener(void* arg){
             perror("Accept failed\n");
             continue;
         }
-        bool flag = false;
         pthread_mutex_lock(&game->players_mutex);
-        if (game->number_of_players >= 4){
-            shutdown(client_socket, SHUT_RDWR);
+        if (game->number_of_players >= 2){
+            //char full_server_signal = 'f';
+//            long check = send(client_socket, &full_server_signal, sizeof(char), 0);
+            //shutdown(client_socket, SHUT_RDWR);
             close(client_socket);
-            refresh();
-            flag = true;
-        }
-        pthread_mutex_unlock(&game->players_mutex);
-
-        if (flag){
             continue;
         }
+/*        else{
+            char ready_server_signal = 'r';
+            long check = send(client_socket, &ready_server_signal, sizeof(char), 0);
+        }*/
+        pthread_mutex_unlock(&game->players_mutex);
         spawn_player(game, &client_socket);
     }
 }
