@@ -106,6 +106,7 @@ struct send_data_t{
     unsigned int carried;
     unsigned int brought;
     unsigned char id;
+    unsigned int deaths;
 };
 
 typedef struct player_t PLAYER;
@@ -137,6 +138,7 @@ unsigned int kill_player(GAME* game, PLAYER* player);
 void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,
                           unsigned int x, unsigned int y);
 char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsigned int player_y);
+void delete_player(GAME* game, PLAYER* player);
 
 void handle_connection_with_player(GAME * game, const int *player_fd);
 
