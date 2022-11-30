@@ -47,10 +47,6 @@ void * listener(void* arg){
             perror("Accept failed\n");
             continue;
         }
-        //pthread_mutex_lock(&game->main_mutex);
-        //mvprintw(24 + game->number_of_players, WIDTH + (10), "Connection accepted from %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-        //refresh();
-        //pthread_mutex_unlock(&game->main_mutex);
         bool flag = false;
         pthread_mutex_lock(&game->players_mutex);
         if (game->number_of_players >= 4){

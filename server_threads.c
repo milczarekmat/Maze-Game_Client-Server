@@ -103,8 +103,13 @@ void * player_thread(void * arg){
     char signal_from_player;
     while (true) {
         long check = recv(*player_fd, &signal_from_player, sizeof(char), 0);
+        if (check == 0){
+            mvprintw(28, WIDTH + (10), "quited");
+            refresh();
+            break;
+        }
         if (signal_from_player == 'q'){
-            mvprintw(22, WIDTH + (10), "quited");
+            mvprintw(28, WIDTH + (10), "quited");
             refresh();
             break;
             //pthread_cancel(*game->players_threads + player->id - 1);

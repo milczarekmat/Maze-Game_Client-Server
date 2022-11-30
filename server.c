@@ -5,7 +5,7 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO kolizja graczy, znikanie obozu po przejsciu bestii, zwalnianie dropped treasures i listener, char_wait cond, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), mijanie gracza z bestia, bestia stay condition, bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast, zmienic sprawdzenie rows i cols dla statystyk graczy
+// TODO kolizja graczy, znikanie obozu po przejsciu bestii, komunikat o pelnym serwerze, crashowanie klienta jesli coin jest obok krzaka lub podwojne krzaki, zwalnianie dropped treasures i listener, sprobowac usunac muteks pojedynczej bestii (oprocz beast->already_moved), bestia na skrzyzowaniach, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu, ogarnac wylaczanie watkow, muteks dla spawnowania gracza, zmiana spawn beast
 int main() {
     GAME* game = create_game();
 
@@ -77,6 +77,5 @@ int main() {
                 spawn_beast(game);
                 break;
         }
-        //generate_map(game);
     }
 }

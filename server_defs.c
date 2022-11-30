@@ -129,7 +129,7 @@ void show_basic_info(GAME *game){
     init_pair(9, COLOR_GREEN, COLOR_BLACK); // kolor krzaka legenda
     pthread_mutex_lock(&game->main_mutex);
     mvprintw(0, WIDTH+5, "Server's PID: %d", getpid());
-    mvprintw(0, WIDTH + 35, "Press q/Q to quit");
+//    mvprintw(0, WIDTH + 35, "Press q/Q to quit");
 
     mvprintw(5 , WIDTH+5, "Player ID's");
     mvprintw(6 , WIDTH+5, "Current X/Y");
@@ -163,6 +163,7 @@ void show_basic_info(GAME *game){
     mvprintw(21 , WIDTH+10, "- large treasure (50 coins)");
     mvprintw(22 , WIDTH+10, "- dropped treasure");
     mvprintw(23 , WIDTH+10, "- campsite");
+    mvprintw(25, WIDTH +6, "Press q/Q to quit");
 
     move(0, 0);
     refresh();
@@ -554,6 +555,7 @@ void send_player_information(GAME* game, PLAYER* player){
     if (!player->file_descriptor){
         return;
     }
+    //pthread_mutex_lock(&game->main_mutex);
     SEND_DATA data;
     data.x = player->x_position;
     data.y = player->y_position;
@@ -577,4 +579,5 @@ void send_player_information(GAME* game, PLAYER* player){
     if (check == -1){
         //todo
     }
+    //pthread_mutex_unlock(&game->main_mutex);
 }
