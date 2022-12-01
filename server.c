@@ -5,7 +5,6 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO znikanie obozu po przejsciu bestii, valgrind,
 int main() {
     GAME* game = create_game();
     int rows, cols;
@@ -13,7 +12,7 @@ int main() {
     getmaxyx(stdscr,rows,cols);
     if (rows < HEIGHT || cols < WIDTH){
         free_game(&game);
-        main_error(SIZE_OF_CONSOLE);
+        main_error(SIZE_OF_CONSOLE, NULL);
     }
     noecho();
     init_colors();
@@ -22,7 +21,7 @@ int main() {
     int check_alloc = spawn_player(game, NULL);
     if (check_alloc){
         free_game(&game);
-        main_error(ALLOCATION);
+        main_error(ALLOCATION, NULL);
     }
     generate_map(game);
     show_basic_info(game);

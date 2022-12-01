@@ -3,6 +3,10 @@
 int spawn_beast(GAME *game){
     pthread_mutex_lock(&game->beasts_mutex);
     game->beasts[game->number_of_beasts] = malloc(sizeof(BEAST));
+    if (!game->beasts[game->number_of_beasts]){
+        pthread_mutex_unlock(&game->beasts_mutex);
+        main_error(ALLOCATION, &game);
+    }
     BEAST *beast = game->beasts[game->number_of_beasts];
     pthread_mutex_unlock(&game->beasts_mutex);
 
@@ -144,8 +148,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
 
     if (!walls){
         free_game(&game);
-        perror("Failed to allocate memory for walls_tab");
-        exit(3);
+        main_error(ALLOCATION, &game);
     }
 
     for (int i=0; i<5; i++){
@@ -156,9 +159,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 free(*(walls + j));
             }
             free(walls);
-            free_game(&game);
-            perror("Failed to allocate memory for walls arr");
-            exit(3);
+            main_error(ALLOCATION, &game);
         }
     }
     enum DIRECTION direct;
@@ -333,11 +334,8 @@ enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned
     int counter = 1; //mozliwy stay
     enum DIRECTION* avail_directs = calloc(1, sizeof(enum DIRECTION));
     if (!avail_directs){
-        free_game(&game);
-        perror("Failed to allocate enums array");
-        exit(3);
+        main_error(ALLOCATION, &game);
     }
-
     pthread_mutex_lock(&game->main_mutex);
     for (int direct=1; direct<=4; direct++){
         int x_offset = x, y_offset = y;
@@ -345,10 +343,8 @@ enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned
         if (game->map[y_offset][x_offset] != 'a'){
             enum DIRECTION* new_avail_directs = realloc(avail_directs, sizeof(enum DIRECTION) * (counter + 1));
             if (!new_avail_directs){
-                free_game(&game);
                 free(avail_directs);
-                perror("Failed to reallocate enums array");
-                exit(3);
+                main_error(ALLOCATION, &game);
             }
             avail_directs = new_avail_directs;
             avail_directs[counter] = direct;
@@ -398,17 +394,12 @@ enum DIRECTION check_if_chase_available(GAME *game, BEAST *beast, unsigned int x
     if (abs(x_to_player) > abs(y_to_player)){
         pthread_mutex_lock(&game->main_mutex);
         if (game->map[y][x + offset_x] != 'a'){
-            //move(22, WIDTH + (10));
-            //clrtoeol();
-//            mvprintw(22, WIDTH + (10), "Done");
             pthread_mutex_unlock(&game->main_mutex);
-            //beast->x_to_player -= offset_x;
             return direct_x;
         }
         else{
             if (game->map[y + offset_y][x] != 'a'){
                 pthread_mutex_unlock(&game->main_mutex);
-                //beast->y_to_player -= offset_y;
                 return direct_y;
             }
             pthread_mutex_unlock(&game->main_mutex);
@@ -419,13 +410,11 @@ enum DIRECTION check_if_chase_available(GAME *game, BEAST *beast, unsigned int x
         pthread_mutex_lock(&game->main_mutex);
         if (game->map[y + offset_y][x] != 'a'){
             pthread_mutex_unlock(&game->main_mutex);
-            //beast->y_to_player -= offset_y;
             return direct_y;
         }
         else{
             if (game->map[y][x + offset_x] != 'a'){
                 pthread_mutex_unlock(&game->main_mutex);
-                //beast->x_to_player -= offset_x;
                 return direct_x;
             }
             pthread_mutex_unlock(&game->main_mutex);

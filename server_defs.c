@@ -3,13 +3,13 @@
 GAME * create_game(){
     GAME *game = malloc(sizeof(GAME));
     if (!game){
-        main_error(ALLOCATION);
+        main_error(ALLOCATION, NULL);
     }
     int err;
     game->map = load_map("map", &err);
     if (err){
         free(game);
-        main_error(err);
+        main_error(err, NULL);
     }
     game->number_of_beasts = 0;
     game->number_of_players = 0;
@@ -43,10 +43,7 @@ int spawn_player(GAME *game, int* file_descriptor){
     game->players[game->number_of_players] = malloc(sizeof(PLAYER));
     if (!game->players[game->number_of_players]){
         pthread_mutex_unlock(&game->players_mutex);
-        endwin();
-        free_game(&game);
-        perror("Failed to allocate player struct");
-        exit(1);
+        main_error(ALLOCATION, &game);
     }
     PLAYER *player = game->players[game->number_of_players];
     pthread_mutex_unlock(&game->players_mutex);
@@ -363,8 +360,6 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
                     second_player = temp;
                 }
             }
-            //todo
-            //przejrzenie i optymalizacja funkcji
 
             unsigned int dropped_treasure = 0;
             int kill_place_x = second_player->x_position, kill_place_y = second_player->y_position;
@@ -387,15 +382,9 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
                 else{
                     add_dropped_treasure(game, ' ', dropped_treasure, kill_place_x, kill_place_y);
                 }
-            }
-
-            if (dropped_treasure > 0){
                 game->map[kill_place_y][kill_place_x] = 'D';
             }
-
-
             generate_map(game);
-
             return;
         }
     }
@@ -472,8 +461,7 @@ void generate_element(enum TYPE type, GAME* game){
     generate_map(game);
 }
 
-//TODO dorobic zwalnianie pamieci
-void main_error(enum ERROR err){
+void main_error(enum ERROR err, GAME** game){
     clear();
     endwin();
     if (err == FILE_OPEN){
@@ -482,6 +470,9 @@ void main_error(enum ERROR err){
     }
     else if (err == ALLOCATION){
         printf("Failed to allocate memory\n");
+        if (game){
+            free_game(game);
+        }
         exit(2);
     }
     else{
@@ -519,11 +510,7 @@ void add_dropped_treasure(GAME *game, char object_to_save, unsigned int carried_
         DROPPED_TREASURE ** new_treasures = realloc(game->dropped_treasures,
                                                     (game->number_of_dropped_treasures+1)*sizeof(DROPPED_TREASURE*));
         if (!new_treasures){
-            // TODO wykorzystac main_error
-            endwin();
-            free_game(&game);
-            perror("Failed to allocate memory for dropped_treasures");
-            exit(4);
+            main_error(ALLOCATION, &game);
         }
         game->dropped_treasures = new_treasures;
 		pthread_mutex_unlock(&game->treasures_mutex);
@@ -566,7 +553,6 @@ void send_player_information(GAME* game, PLAYER* player){
     data.brought = player->brought;
     data.id = player->id;
     data.deaths = player->deaths;
-
     data.game_round = game->rounds;
     pthread_mutex_lock(&game->main_mutex);
     for (int i = -2, k = 0; i <= 2; i++, k++) {
@@ -580,9 +566,11 @@ void send_player_information(GAME* game, PLAYER* player){
         }
     }
     long check = send(*player->file_descriptor, &data, sizeof(data), 0);
-
     if (check == -1){
-        //todo
+        endwin();
+        free_game(&game);
+        perror("Failed to sent a package to the client");
+        exit(4);
     }
     pthread_mutex_unlock(&game->main_mutex);
 }
