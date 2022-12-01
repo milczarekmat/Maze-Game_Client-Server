@@ -16,11 +16,13 @@ GAME * create_game(){
     game->rounds = 1;
     game->number_of_dropped_treasures = 0;
     game->dropped_treasures = NULL;
+    game->camp_y = 17;
+    game->camp_y = 29;
     pthread_mutex_init(&game->main_mutex, NULL);
     pthread_mutex_init(&game->players_mutex, NULL);
     pthread_mutex_init(&game->beasts_mutex, NULL);
     pthread_mutex_init(&game->treasures_mutex, NULL);
-    pthread_cond_init(&game->char_wait, NULL);
+    pthread_cond_init(&game->connection_wait, NULL);
     return game;
 }
 
@@ -59,14 +61,15 @@ int spawn_player(GAME *game, int* file_descriptor){
     }
     while(game->map[y][x] != ' ');
     player->id = game->number_of_players + 1;
-    game->map[8][33] = player->id + 48;
+   // game->map[8][33] = player->id + 48;
+    game->map[16][26] = player->id + 48;
     pthread_mutex_unlock(&game->main_mutex);
     // koordy przy obozie y16 x26
     // y8 x33 srodek
-    player->x_spawn = 33;
-    player->x_position = 33;
-    player->y_spawn = 8;
-    player->y_position = 8;
+    player->x_spawn = 26;
+    player->x_position = 26;
+    player->y_spawn = 16;
+    player->y_position = 16;
     player->file_descriptor = file_descriptor;
     player->carried = 0;
     player->brought = 0;
@@ -204,20 +207,16 @@ void show_players_info(GAME *game){
 
 char ** load_map(char *filename, int *err){
     FILE *fp = fopen(filename, "r");
-
     if (!fp){
         *err = 1;
         return NULL;
     }
-
     char **map = calloc(HEIGHT, sizeof(char *));
-
     if (!map){
         *err = 2;
         fclose(fp);
         return NULL;
     }
-
     for (int i=0; i<HEIGHT; i++){
         *(map + i) = calloc(WIDTH, sizeof(char));
 
@@ -231,14 +230,12 @@ char ** load_map(char *filename, int *err){
             return NULL;
         }
     }
-
     for (int i=0; i<HEIGHT; i++){
         for (int j=0; j<WIDTH; j++){
             *(*(map + i) + j) = fgetc(fp);
             fgetc(fp);
         }
     }
-
     *err = 0;
     return map;
 }
@@ -266,7 +263,6 @@ void free_game(GAME **game){
     }
     pthread_mutex_unlock(&(*game)->players_mutex);
 
-    //TODO zwalnianie treasures i ich mutexow
     pthread_mutex_lock(&(*game)->treasures_mutex);
     for (int i=0; i<(*game)->number_of_dropped_treasures; i++){
         pthread_mutex_destroy(&(*game)->dropped_treasures[i]->treasure_mutex);
@@ -371,6 +367,54 @@ void move_player(enum DIRECTION side, GAME* game, unsigned int id){
         }
         else {
             game->map[player->y_position][player->x_position] = ' ';
+        }
+    }
+
+    if (isdigit(game->map[player->y_position + y][player->x_position + x])){
+        if (game->map[player->y_position + y][player->x_position + x] != player->id + 48) {
+            pthread_mutex_unlock(&game->main_mutex);
+            pthread_mutex_unlock(&player->player_mutex);
+            PLAYER *second_player = NULL;
+            for (int i = 0; i < game->number_of_players; i++) {
+                PLAYER *temp = game->players[i];
+                if (temp->id + 48 == game->map[player->y_position + y][player->x_position + x]) {
+                    second_player = temp;
+                }
+            }
+            //todo
+            //przejrzenie i optymalizacja funkcji
+
+            unsigned int dropped_treasure = 0;
+            int kill_place_x = second_player->x_position, kill_place_y = second_player->y_position;
+            if (second_player->bush_status == 1) {
+                game->map[player->y_position + y][player->x_position + x] = '#';
+            }
+            else if (second_player->in_camp) {
+                game->map[player->y_position + y][player->x_position + x] = 'A';
+            }
+            else {
+                game->map[player->y_position + y][player->x_position + x] =  ' ';
+            }
+
+            dropped_treasure += kill_player(game, second_player);
+            dropped_treasure += kill_player(game, player);
+            if (dropped_treasure > 0) {
+                if (second_player->in_bush){
+                    add_dropped_treasure(game, '#', dropped_treasure, kill_place_x, kill_place_y);
+                }
+                else{
+                    add_dropped_treasure(game, ' ', dropped_treasure, kill_place_x, kill_place_y);
+                }
+            }
+
+            if (dropped_treasure > 0){
+                game->map[kill_place_y][kill_place_x] = 'D';
+            }
+
+
+            generate_map(game);
+
+            return;
         }
     }
 

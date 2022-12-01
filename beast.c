@@ -37,16 +37,16 @@ int spawn_beast(GAME *game){
     while(game->map[y][x] != ' ');
     // TODO zmienic na mozliwosc respienia w krzakach?
     // TODO ZMIENIC Z POWROTEM NA X I Y
-    game->map[8][33] = '*';
+    game->map[14][26] = '*';
     pthread_mutex_unlock(&game->main_mutex);
 
     // TODO ZMIENIC Z POWROTEM NA X I Y
 /*    beast->x_position = x;
     beast->y_position = y;*/
-    beast->x_position = 33;
-    beast->y_position = 8;
-    beast->x_to_player = 0;
-    beast->y_to_player = 0;
+    beast->x_position = 26;
+    beast->y_position = 14;
+    beast->x_to_player = 26;
+    beast->y_to_player = 14;
     beast->already_moved = false;
     beast->seeing_player = false;
     beast->coming_until_wall = false;
@@ -87,7 +87,8 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
 
     pthread_mutex_lock(&game->main_mutex);
 
-    if (game->map[beast->y_position + y][beast->x_position + x] == 'a'){
+    if (game->map[beast->y_position + y][beast->x_position + x] == 'a'
+    || game->map[beast->y_position + y][beast->x_position + x] == 'A'){
         pthread_mutex_unlock(&game->main_mutex);
         //TODO MUTEKS BEAST?
         beast->coming_until_wall = false;
@@ -96,57 +97,45 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
 
     char object_to_save;
     unsigned int dropped_treasure;
-    bool flag = false;
+    bool break_flag = false;
     if (beast->available_kill) {
-        //if (isdigit(game->map[beast->y_position + y][beast->x_position + x])) {
             pthread_mutex_lock(&game->players_mutex);
             for (enum DIRECTION direct = 1; direct<=4; direct++) {
                 int offset_x = 0, offset_y = 0 ;
                 offset_adaptation(direct, &offset_y, &offset_x);
                 for (int i = 0; i < game->number_of_players; i++) {
-                    PLAYER *player = game->players[i];
-                    if (player->id + 48 ==
-                    game->map[beast->y_position + offset_y][beast->x_position + offset_x]) {
-							int kill_place_x = player->x_position, kill_place_y = player->y_position;
-                        //if (player->already_moved == false){
-                            dropped_treasure = kill_player(game, player);
-                            //x = offset_x;
-                            //y = offset_y;
-                            pthread_mutex_lock(&player->player_mutex);
-                            if (dropped_treasure > 0) {
-                                object_to_save = 'D';
-                                if (player->in_bush){
-                                    add_dropped_treasure(game, '#', dropped_treasure, kill_place_x, kill_place_y);
-                                }
-                                else{
-                                    add_dropped_treasure(game, ' ', dropped_treasure, kill_place_x, kill_place_y);
-                                }
-                            } else {
-                                object_to_save = ' ';
-                                if (player->in_bush == true){
-                                    object_to_save = '#';
-                                }
-                            }
-                            pthread_mutex_unlock(&player->player_mutex);
-                        //}
-                        // TODO USUNAC FLAGE
-                        flag = true;
-                        break;
+                PLAYER *player = game->players[i];
+                if (player->id + 48 == game->map[beast->y_position + offset_y]
+                        [beast->x_position + offset_x]) {
+                    int kill_place_x = player->x_position, kill_place_y = player->y_position;
+                    dropped_treasure = kill_player(game, player);
+                    pthread_mutex_lock(&player->player_mutex);
+                    if (dropped_treasure > 0) {
+                        object_to_save = 'D';
+                        if (player->in_bush){
+                            add_dropped_treasure(game, '#', dropped_treasure, kill_place_x, kill_place_y);
+                        }
+                        else{
+                            add_dropped_treasure(game, ' ', dropped_treasure, kill_place_x, kill_place_y);
+                        }
                     }
+                    else {
+                        object_to_save = ' ';
+                        if (player->in_bush == true){
+                            object_to_save = '#';
+                        }
+                    }
+                    pthread_mutex_unlock(&player->player_mutex);
+                        // TODO USUNAC FLAGE
+                    break_flag = true;
+                    break;
                 }
-                if (flag){
+                }
+                if (break_flag){
                     break;
                 }
             }
             pthread_mutex_unlock(&game->players_mutex);
-/*            if (!flag) {
-                mvprintw(28, WIDTH + (10), "Done ehhe");
-                pthread_mutex_unlock(&game->map_mutex);
-                endwin();
-                free_game(&game);
-                exit(9);
-            }*/
-        //}
     }
     else{
         object_to_save = game->map[beast->y_position + y][beast->x_position + x];
@@ -172,13 +161,10 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
 }
 
 void check_beast_vision(GAME *game, BEAST *beast){
-    // TODO ZASTANOWIC SIE CZY MUTEKSY BESTII SA TU POTRZEBNE
-    //pthread_mutex_lock(&beast->beast_mutex);
     int x = beast->x_position, y = beast->y_position;
     beast->seeing_player = 0;
     beast->y_to_player = 0;
     beast->x_to_player = 0;
-    //pthread_mutex_unlock(&beast->beast_mutex);
 
     bool** walls = calloc(5, sizeof(bool *));
 
@@ -201,26 +187,17 @@ void check_beast_vision(GAME *game, BEAST *beast){
             exit(3);
         }
     }
-    // TODO to na gorze do funkcji
 
     enum DIRECTION direct;
     // TODO OPISAC INSTRUKCJE Z PLIKIEM PNG, REFAKTORYZACJA
 
     pthread_mutex_lock(&game->main_mutex);
-    //pthread_mutex_lock(&beast->beast_mutex);
     // poziom pierwszy przeszukiwan
     for (direct=1; direct<=4; direct++){
         check_fields_for_player_occurrence(game, beast, walls, x, y, 1, direct, STAY);
 
         if (beast->seeing_player) {
-            // TODO flaga mozliwosci zabicia
-            //move(22, WIDTH + (10));
-            //clrtoeol();
-            //mvprintw(22, WIDTH + (10), "Founded kill %d", beast->available_kill);
-            //pthread_mutex_unlock(&game->map_mutex);
-            //beast->available_kill = true;
             pthread_mutex_unlock(&game->main_mutex);
-            //pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
     }
@@ -230,7 +207,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
             check_fields_for_player_occurrence(game, beast, walls, x, y, 2, direct, addit);
             if (beast->seeing_player) {
                 pthread_mutex_unlock(&game->main_mutex);
-                //pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
         }
@@ -245,7 +221,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
         check_fields_for_player_occurrence(game, beast, walls, x, y, 3, direct, STAY);
         if (beast->seeing_player) {
             pthread_mutex_unlock(&game->main_mutex);
-            //pthread_mutex_unlock(&beast->beast_mutex);
             return;
         }
     }
@@ -273,7 +248,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
                     pthread_mutex_unlock(&game->main_mutex);
-                    //pthread_mutex_unlock(&beast->beast_mutex);
                     return;
                 }
             }
@@ -288,7 +262,6 @@ void check_beast_vision(GAME *game, BEAST *beast){
                     beast->y_to_player += offset_y;
                     beast->x_to_player += offset_x;
                     pthread_mutex_unlock(&game->main_mutex);
-                    //pthread_mutex_unlock(&beast->beast_mutex);
                     return;
                 }
             }
@@ -311,26 +284,21 @@ void check_beast_vision(GAME *game, BEAST *beast){
                 beast->y_to_player += offset_y;
                 beast->x_to_player += offset_x;
                 pthread_mutex_unlock(&game->main_mutex);
-                //pthread_mutex_unlock(&beast->beast_mutex);
                 return;
             }
 
         }
     }
     pthread_mutex_unlock(&game->main_mutex);
-    //pthread_mutex_unlock(&beast->beast_mutex);
-
 
     for (int i=0; i<5; i++){
         free(*(walls + i));
     }
     free(walls);
 
-    //pthread_mutex_lock(&beast->beast_mutex);
     beast->seeing_player = false;
     beast->x_to_player = 0;
     beast->y_to_player = 0;
-    //pthread_mutex_unlock(&beast->beast_mutex);
 }
 
 void founded_player(BEAST* beast, int x, int y){

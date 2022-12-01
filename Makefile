@@ -16,6 +16,10 @@ clean:
 	rm $(executable)
 	rm client
 
+.PHONY: client
+client:
+	gcc -Wall -pedantic -lncurses -pthread client.c -o client
+
 .PHONY: check
 check: $(executable)
 	valgrind --leak-check=full --track-origins=yes ./$(executable)
