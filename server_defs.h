@@ -125,14 +125,12 @@ int spawn_player(GAME *game, int* file_descriptor);
 void move_player(enum DIRECTION side, GAME* game, unsigned int id);
 void offset_adaptation(enum DIRECTION direction, int* offset_y, int* offset_x);
 void generate_element(enum TYPE type, GAME* game);
-void main_error(enum ERROR err);
+void main_error(enum ERROR err, GAME** game);
 void free_map(char **map, int height);
 void free_game(GAME **game);
 bool check_if_border_x_exceeded(unsigned int x);
 bool check_if_border_y_exceeded(unsigned int y);
-// TODO sprawdzanie bledow send()
 void send_player_information(GAME* game, PLAYER* player);
-
 unsigned int kill_player(GAME* game, PLAYER* player);
 void add_dropped_treasure(GAME* game, char object_to_save, unsigned int carried_by_player,
                           unsigned int x, unsigned int y);
