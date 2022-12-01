@@ -38,32 +38,18 @@ void init_server_socket(GAME *game){
 
 void * listener(void* arg){
     GAME *game = (GAME *)arg;
-
     int client_socket, address_size = sizeof(SA_IN);
     while(true) {
         pthread_mutex_lock(&game->players_mutex);
         if (game->number_of_players >= 2){
-            //char full_server_signal = 'f';
-//            long check = send(client_socket, &full_server_signal, sizeof(char), 0);
-            //shutdown(client_socket, SHUT_RDWR);
-            //close(client_socket);
-            //mvprintw(28, WIDTH+5, "Done");
             pthread_cond_wait(&game->connection_wait, &game->players_mutex);
-            //init_server_socket(game);
         }
         pthread_mutex_unlock(&game->players_mutex);
-
         client_socket = accept(game->socket_fd, (SA *) &client_address, (socklen_t *) &address_size);
         if (client_socket == -1) {
             perror("Accept failed\n");
             continue;
         }
-
-/*        else{
-            char ready_server_signal = 'r';
-            long check = send(client_socket, &ready_server_signal, sizeof(char), 0);
-        }*/
-
         spawn_player(game, &client_socket);
     }
 }

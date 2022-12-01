@@ -1,32 +1,11 @@
 #include "beast.h"
 
-//TODO zmienic na strukture funkcji wg spawn_player
 int spawn_beast(GAME *game){
-    // TODO CZY POTTRZEBNY TU MUTEKS BESTII?
     pthread_mutex_lock(&game->beasts_mutex);
     game->beasts[game->number_of_beasts] = malloc(sizeof(BEAST));
     BEAST *beast = game->beasts[game->number_of_beasts];
-
-//    pthread_mutex_lock(&(game->beasts + game->number_of_beasts)->beast_mutex);
-/*    BEAST *new_beasts = realloc(game->beasts, (game->number_of_beasts + 1) * sizeof(BEAST));
-
-    if (!new_beasts){
-        perror("Failed to allocate memory for beast struct");
-        free_game(&game);
-        exit(4);
-    }
-    game->beasts = new_beasts;
-    BEAST* beast = game->beasts + game->number_of_beasts;
-    pthread_t* new_beasts_threads = realloc(game->beasts_threads, sizeof(pthread_t) * (game->number_of_beasts + 1));
-    if (!new_beasts_threads){
-        perror("Failed to allocate memory for beast threads");
-        free_game(&game);
-        exit(4);
-    }
-    game->beasts_threads = new_beasts_threads;*/
-
     pthread_mutex_unlock(&game->beasts_mutex);
-//    pthread_mutex_lock(&(game->beasts + game->number_of_beasts)->beast_mutex);
+
     int x, y;
     srand(time(NULL));
     pthread_mutex_lock(&game->main_mutex);
@@ -35,18 +14,12 @@ int spawn_beast(GAME *game){
         y = rand() % HEIGHT;
     }
     while(game->map[y][x] != ' ');
-    // TODO zmienic na mozliwosc respienia w krzakach?
-    // TODO ZMIENIC Z POWROTEM NA X I Y
-    game->map[14][26] = '*';
+    game->map[y][x] = '*';
     pthread_mutex_unlock(&game->main_mutex);
-
-    // TODO ZMIENIC Z POWROTEM NA X I Y
-/*    beast->x_position = x;
-    beast->y_position = y;*/
-    beast->x_position = 26;
-    beast->y_position = 14;
-    beast->x_to_player = 26;
-    beast->y_to_player = 14;
+    beast->x_position = x;
+    beast->y_position = y;
+    beast->x_to_player = x;
+    beast->y_to_player = y;
     beast->already_moved = false;
     beast->seeing_player = false;
     beast->coming_until_wall = false;
@@ -90,7 +63,6 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
     if (game->map[beast->y_position + y][beast->x_position + x] == 'a'
     || game->map[beast->y_position + y][beast->x_position + x] == 'A'){
         pthread_mutex_unlock(&game->main_mutex);
-        //TODO MUTEKS BEAST?
         beast->coming_until_wall = false;
         return;
     }
@@ -108,6 +80,7 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
                 if (player->id + 48 == game->map[beast->y_position + offset_y]
                         [beast->x_position + offset_x]) {
                     int kill_place_x = player->x_position, kill_place_y = player->y_position;
+                    bool in_camp = player->in_camp;
                     dropped_treasure = kill_player(game, player);
                     pthread_mutex_lock(&player->player_mutex);
                     if (dropped_treasure > 0) {
@@ -121,12 +94,14 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
                     }
                     else {
                         object_to_save = ' ';
-                        if (player->in_bush == true){
+                        if (player->in_bush){
                             object_to_save = '#';
+                        }
+                        else if (in_camp){
+                            object_to_save = 'A';
                         }
                     }
                     pthread_mutex_unlock(&player->player_mutex);
-                        // TODO USUNAC FLAGE
                     break_flag = true;
                     break;
                 }
@@ -141,7 +116,6 @@ void move_beast(enum DIRECTION side, GAME* game, BEAST *beast){
         object_to_save = game->map[beast->y_position + y][beast->x_position + x];
     }
 
-    // TODO MUTEKS BEAST?
     game->map[beast->y_position + y][beast->x_position + x] = '*';
     if (beast->last_encountered_object != '*'){
         game->map[beast->y_position][beast->x_position] = beast->last_encountered_object;
@@ -187,9 +161,7 @@ void check_beast_vision(GAME *game, BEAST *beast){
             exit(3);
         }
     }
-
     enum DIRECTION direct;
-    // TODO OPISAC INSTRUKCJE Z PLIKIEM PNG, REFAKTORYZACJA
 
     pthread_mutex_lock(&game->main_mutex);
     // poziom pierwszy przeszukiwan
@@ -302,18 +274,15 @@ void check_beast_vision(GAME *game, BEAST *beast){
 }
 
 void founded_player(BEAST* beast, int x, int y){
-    //pthread_mutex_lock(&beast->beast_mutex);
     beast->seeing_player = true;
     beast-> x_to_player = x;
     beast-> y_to_player = y;
-    //pthread_mutex_unlock(&beast->beast_mutex);
 }
 
 void check_fields_for_player_occurrence(GAME *game, BEAST *beast, bool** walls, int x, int y,
                                         unsigned int depth_of_search, enum DIRECTION direction, enum DIRECTION additional_direction)
 {
     int offset_y = 0, offset_x = 0, wall_x = 2, wall_y = 2;
-    // TODO KOMENTARZE OPISUJACE DZIALANIE
     switch (depth_of_search) {
         case 1:
             offset_adaptation(direction, &offset_y, &offset_x);
@@ -369,8 +338,6 @@ enum DIRECTION * check_available_directions(GAME *game, unsigned int x, unsigned
         exit(3);
     }
 
-    // TODO A MOZE MUTEKS BEASTS BY TU POMOGL IDK?
-
     pthread_mutex_lock(&game->main_mutex);
     for (int direct=1; direct<=4; direct++){
         int x_offset = x, y_offset = y;
@@ -410,7 +377,6 @@ enum DIRECTION rand_direction_for_beast_move(int n, enum DIRECTION* avail, enum 
 enum DIRECTION check_if_chase_available(GAME *game, BEAST *beast, unsigned int x, unsigned int y, int x_to_player, int y_to_player){
     enum DIRECTION direct_x = STAY, direct_y = STAY;
     int offset_y = 0, offset_x = 0;
-    //TODO refaktoryzacja
     if (y_to_player < 0){
         offset_adaptation(UP, &offset_y, NULL);
         direct_y = UP;
