@@ -17,7 +17,7 @@ GAME * create_game(){
     game->number_of_dropped_treasures = 0;
     game->dropped_treasures = NULL;
     game->camp_y = 17;
-    game->camp_y = 29;
+    game->camp_x = 29;
     pthread_mutex_init(&game->main_mutex, NULL);
     pthread_mutex_init(&game->players_mutex, NULL);
     pthread_mutex_init(&game->beasts_mutex, NULL);
@@ -39,16 +39,15 @@ void init_colors(){
 }
 
 int spawn_player(GAME *game, int* file_descriptor){
-    //TODO muteks, watek obslugujacy gracza
     pthread_mutex_lock(&game->players_mutex);
-/*    PLAYER *new_players = realloc(game->players, (game->number_of_players + 1) * sizeof(PLAYER));
-    if (!new_players){
-        //todo zwalniac pamiec juz w funkcji zamiast zwracac kod bledu
-        return -1;
-    }
-    game->players = new_players;
-    PLAYER *player = game->players + game->number_of_players;*/
     game->players[game->number_of_players] = malloc(sizeof(PLAYER));
+    if (!game->players[game->number_of_players]){
+        pthread_mutex_unlock(&game->players_mutex);
+        endwin();
+        free_game(&game);
+        perror("Failed to allocate player struct");
+        exit(1);
+    }
     PLAYER *player = game->players[game->number_of_players];
     pthread_mutex_unlock(&game->players_mutex);
 
@@ -61,15 +60,12 @@ int spawn_player(GAME *game, int* file_descriptor){
     }
     while(game->map[y][x] != ' ');
     player->id = game->number_of_players + 1;
-   // game->map[8][33] = player->id + 48;
-    game->map[16][26] = player->id + 48;
+    game->map[y][x] = player->id + 48;
     pthread_mutex_unlock(&game->main_mutex);
-    // koordy przy obozie y16 x26
-    // y8 x33 srodek
-    player->x_spawn = 26;
-    player->x_position = 26;
-    player->y_spawn = 16;
-    player->y_position = 16;
+    player->x_spawn = x;
+    player->x_position = x;
+    player->y_spawn = y;
+    player->y_position = y;
     player->file_descriptor = file_descriptor;
     player->carried = 0;
     player->brought = 0;
@@ -89,11 +85,6 @@ int spawn_player(GAME *game, int* file_descriptor){
     else{
         game->number_of_players++;
     }
-    
-    // TODO DODAC MUTEKS PLAYERS?
-    //pthread_mutex_lock(&game->players_mutex);
-    //(game->number_of_players)++;
-    //pthread_mutex_unlock(&game->players_mutex);
     generate_map(game);
     return 0;
 }
@@ -132,6 +123,7 @@ void show_basic_info(GAME *game){
     init_pair(9, COLOR_GREEN, COLOR_BLACK); // kolor krzaka legenda
     pthread_mutex_lock(&game->main_mutex);
     mvprintw(0, WIDTH+5, "Server's PID: %d", getpid());
+    mvprintw(1, WIDTH+5, "Campsite X/Y: %d/%d", game->camp_x, game->camp_y);
 
     mvprintw(5 , WIDTH+5, "Player ID's");
     mvprintw(6 , WIDTH+5, "Current X/Y");
@@ -276,16 +268,6 @@ void free_game(GAME **game){
     pthread_mutex_destroy(&(*game)->players_mutex);
     pthread_mutex_destroy(&(*game)->beasts_mutex);
     pthread_mutex_destroy(&(*game)->treasures_mutex);
-
-//    if ((*game)->players){
-//        free((*game)->players);
-//    }
-/*    if ((*game)->beasts){
-        free((*game)->beasts);
-    }
-    if ((*game)->beasts_threads){
-        free((*game)->beasts_threads);
-    }*/
     free(*game);
 }
 
@@ -530,9 +512,7 @@ void add_dropped_treasure(GAME *game, char object_to_save, unsigned int carried_
     pthread_mutex_unlock(&game->treasures_mutex);
 
     if (dropped_treas){
-        //pthread_mutex_lock(&dropped_treas->treasure_mutex);
         dropped_treas->value += carried_by_player;
-        //pthread_mutex_unlock(&dropped_treas->treasure_mutex);
     }
     else{
         pthread_mutex_lock(&game->treasures_mutex);
@@ -570,11 +550,8 @@ char get_dropped_treasure(GAME* game, PLAYER*player, unsigned int player_x, unsi
     }
 	pthread_mutex_unlock(&game->treasures_mutex);
     char object_to_save;
-    // TODO czy potrzebny tu muteks treas?
-    //pthread_mutex_lock(&dropped_treas->treasure_mutex);
     player->carried += dropped_treas->value;
     object_to_save = dropped_treas->last_object;
-    //pthread_mutex_unlock(&dropped_treas->treasure_mutex);
     return object_to_save;
 }
 

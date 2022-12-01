@@ -5,10 +5,9 @@
 #include "server_threads.h"
 #include "beast.h"
 
-// TODO kolizja graczy, znikanie obozu po przejsciu bestii, komunikat o pelnym serwerze, valgrind, crashowanie klienta jesli coin jest obok krzaka lub podwojne krzaki, zwalnianie dropped treasures i listener, jezeli nie ma wolnego miesjca na mapie zakonczyc generowanie elementu,
+// TODO znikanie obozu po przejsciu bestii, valgrind,
 int main() {
     GAME* game = create_game();
-
     int rows, cols;
     initscr();
     getmaxyx(stdscr,rows,cols);
@@ -16,8 +15,6 @@ int main() {
         free_game(&game);
         main_error(SIZE_OF_CONSOLE);
     }
-
-
     noecho();
     init_colors();
     keypad(stdscr, TRUE);
@@ -41,7 +38,6 @@ int main() {
                 endwin();
                 free_game(&game);
                 return 0;
-                // TODO PRZEKAZYWANIE ODPOWIEDNIEGO GRACZA
             case KEY_UP:
                 move_player(UP, game, 1);
                 break;

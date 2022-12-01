@@ -64,12 +64,6 @@ void * beast_thread(void * arg) {
             (abs(beast->y_to_player) <= 1 && abs(beast->x_to_player) == 0)){
                 beast->available_kill = true;
             }
-            // TODO
-            if (beast->y_position + beast->y_to_player + 1 == game->camp_y &&
-            beast->x_position + beast->x_to_player + 1 == game->camp_x){
-                beast->available_kill = false;
-                mvprintw(27, WIDTH+5, "Avail kill: %d", beast->available_kill);
-            }
             move_beast(direct, game, beast);
 
         }
@@ -119,7 +113,6 @@ void * player_thread(void * arg){
         else if (signal_from_player == 'd'){
             move_player(RIGHT, game, player->id);
         }
-        // todo BRAK MUTEKSU PLAYER W SEND
         send_player_information(game, player);
     }
     delete_player(game, player);
