@@ -14,25 +14,21 @@ void * tick(void * arg){
         usleep(600000);
         generate_map(game);
 
-        // TODO CZY MUTEKS PLAYERS JEST POTRZEBNY?
         pthread_mutex_lock(&game->players_mutex);
         for (int i=0; i<game->number_of_players; i++){
-            // TODO wskaznik player do zrobienia
             PLAYER* player = game->players[i];
             pthread_mutex_lock(&player->player_mutex);
             if (player->bush_status > 1){
                 player->bush_status -= 1;
             }
             player->already_moved = false;
-            //send_player_information(game, (game->players[i]));
-
             pthread_mutex_unlock(&player->player_mutex);
             if (player->bush_status == 1){
                 pthread_cond_signal(&player->bush_wait);
             }
         }
         pthread_mutex_unlock(&game->players_mutex);
-        // TODO CZY MUTEKS PONIZEJ GRY JEST POTRZEBNY?
+
         pthread_mutex_lock(&game->beasts_mutex);
         for (int i=0; i<game->number_of_beasts; i++){
             BEAST *beast = game->beasts[i];
@@ -54,7 +50,6 @@ void * beast_thread(void * arg) {
     BEAST *beast = game->beasts[game->number_of_beasts];
     (game->number_of_beasts)++;
     pthread_mutex_unlock(&game->beasts_mutex);
-    // TODO MUTEKS?
     while (true) {
         pthread_mutex_lock(&beast->beast_mutex);
         if (beast->already_moved){
@@ -68,6 +63,12 @@ void * beast_thread(void * arg) {
             if ((abs(beast->x_to_player) <= 1 && abs(beast->y_to_player) == 0) ||
             (abs(beast->y_to_player) <= 1 && abs(beast->x_to_player) == 0)){
                 beast->available_kill = true;
+            }
+            // TODO
+            if (beast->y_position + beast->y_to_player + 1 == game->camp_y &&
+            beast->x_position + beast->x_to_player + 1 == game->camp_x){
+                beast->available_kill = false;
+                mvprintw(27, WIDTH+5, "Avail kill: %d", beast->available_kill);
             }
             move_beast(direct, game, beast);
 
@@ -122,6 +123,9 @@ void * player_thread(void * arg){
         send_player_information(game, player);
     }
     delete_player(game, player);
+    pthread_mutex_lock(&game->players_mutex);
     game->number_of_players--;
+    pthread_cond_signal(&game->connection_wait);
+    pthread_mutex_unlock(&game->players_mutex);
     return NULL;
 }

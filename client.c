@@ -58,16 +58,6 @@ int main(){
         return 2;
     }
 
-/*    char server_sign;
-    pthread_mutex_lock(&main_mutex);
-    long connection_check = recv(socket_fd, &server_sign, sizeof(char), 0);
-    if (connection_check == 0){
-        printf("Pełny serwer\n");
-        close(socket_fd);
-        exit(1);
-    }
-    pthread_mutex_unlock(&main_mutex);*/
-
     struct socket_and_signal socket_and_signal;
     socket_and_signal.socket_fd = socket_fd;
     socket_and_signal.signal = malloc(sizeof(char));
