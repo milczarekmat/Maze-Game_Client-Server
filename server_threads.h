@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include "socket_server.h"
 #include "server_defs.h"
-//#include "queue.h"
 
 void * tick(void * arg);
 void * beast_thread(void * arg);
