@@ -9,5 +9,9 @@ In the case of a collision with another player, the loot of both remains at the 
 The loot left behind (D) has a value. In the case of a collision, it is the sum of the carried coins of both players.
 The player disposes of his coins at the encampment (A), where they are credited to his account (budget). After passing the treasure, the player continues the search, starting from the encampment.
 
+### Used mechanisms
+I used multithreaded programming to create this game. I learned about the term race conditions and what they are all about. In order to prevent their occurrence, I used mutexes. For client-server communication I used the network socket API.
+
+
 ## Game view
 ![GRA-PROJEKT-SS](https://user-images.githubusercontent.com/97130903/232145653-0bc4494d-e21e-4226-82e9-94475cae45e0.png)
