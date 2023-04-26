@@ -15,3 +15,6 @@ I used multithreaded programming to create this game. I learned about the term r
 
 ## Game view
 ![GRA-PROJEKT-SS](https://user-images.githubusercontent.com/97130903/232145653-0bc4494d-e21e-4226-82e9-94475cae45e0.png)
+
+## Instruction to run the game
+In order to play the game you need to have an unix system installed. Then in game's directory terminal write: **make**. After succesfull compilation, if you want to run server just type: **/server** and if you want to play as client type: **./client**. The game for now is configured to play only on localhost.
